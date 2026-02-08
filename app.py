@@ -146,11 +146,11 @@ with st.sidebar:
 
     # Data source selection
     st.subheader("데이터 소스")
-    use_sample = st.checkbox("샘플 데이터 사용", value=True,
+    use_sample = st.checkbox("샘플 데이터 사용", value=False,
                              help="체크 해제 시 실시간 데이터 로딩 시도")
 
     load_fed_balance_sheet = st.checkbox("Fed 대차대조표 포함",
-                                         value=False,
+                                         value=True,
                                          help="Reserve Balances, Reverse Repo, TGA, Fed Lending 포함")
 
     if st.button("🔄 데이터 새로고침"):
