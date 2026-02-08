@@ -1,0 +1,2 @@
+Always use encoding='utf-8' when reading or writing files. This project contains Korean characters.
+When generating Python scripts, prefer using `open(..., encoding='utf-8')` explicitly.

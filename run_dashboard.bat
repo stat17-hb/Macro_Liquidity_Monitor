@@ -1,4 +1,5 @@
 @echo off
+set PYTHONUTF8=1
 chcp 65001 > nul
 echo ========================================
 echo   유동성 모니터링 대시보드 실행

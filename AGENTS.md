@@ -11,6 +11,13 @@ Streamlit-based macro liquidity monitoring dashboard analyzing Fed balance sheet
 2. Price = Marginal buyer's belief (NOT money quantity)
 3. Goal = Vulnerability detection (NOT price explanation)
 
+## Coding Standards
+
+### Encoding
+- All source code files must be UTF-8 encoded.
+- All file I/O operations (`open()`, `pd.read_csv()`, etc.) must explicitly use `encoding='utf-8'` if text content is involved.
+- The environment should have `PYTHONUTF8=1` set to ensure Python uses UTF-8 for default encoding (stdio, etc.).
+
 ## Commands
 
 ```bash
