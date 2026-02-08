@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(done)",
+      "Bash(test:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(python:*)",
+      "Bash(cat:*)",
+      "mcp__plugin_oh-my-claudecode_t__state_write",
+      "Bash(streamlit run:*)"
+    ]
+  }
+}
