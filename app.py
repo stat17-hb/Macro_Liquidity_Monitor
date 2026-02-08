@@ -52,9 +52,10 @@ def load_all_data(use_sample: bool = True, load_fed_balance_sheet: bool = False)
     else:
         # Try to load from real sources
         data_frames = []
+        load_status = []
 
         fred = FREDLoader(api_key=config.fred_api_key)
-        if fred.is_available():
+        if fred.is_ready():
             try:
                 if load_fed_balance_sheet:
                     # Load Fed balance sheet indicators
@@ -62,17 +63,34 @@ def load_all_data(use_sample: bool = True, load_fed_balance_sheet: bool = False)
                 else:
                     # Load minimum set (original indicators)
                     fred_data = fred.load_all_minimum_set()
-                data_frames.append(fred_data)
+                
+                if not fred_data.empty:
+                    data_frames.append(fred_data)
+                    indicator_count = len(fred_data['indicator'].unique())
+                    load_status.append(f"FRED: {indicator_count}개 지표 로딩됨")
             except Exception as e:
-                st.warning(f"FRED 데이터 로딩 실패: {e}")
+                load_status.append(f"FRED: 로딩 실패 - {e}")
+        else:
+            load_status.append(f"FRED: {fred.get_status_message()}")
 
         yf = YFinanceLoader()
         if yf.is_available():
             try:
                 yf_data = yf.load_all_minimum_set()
-                data_frames.append(yf_data)
+                if not yf_data.empty:
+                    data_frames.append(yf_data)
+                    indicator_count = len(yf_data['indicator'].unique())
+                    load_status.append(f"yfinance: {indicator_count}개 지표 로딩됨")
             except Exception as e:
-                st.warning(f"yfinance 데이터 로딩 실패: {e}")
+                load_status.append(f"yfinance: 로딩 실패 - {e}")
+
+        # Show load status
+        if load_status:
+            for status in load_status:
+                if "실패" in status or "필요" in status or "미설치" in status:
+                    st.warning(status)
+                else:
+                    st.info(status)
 
         if data_frames:
             return pd.concat(data_frames, ignore_index=True)
@@ -111,6 +129,11 @@ def prepare_data_dict(df: pd.DataFrame) -> dict:
             'Breakeven 10Y': 'breakeven',
             'Forward EPS': 'forward_eps',
             'PE Ratio': 'pe_ratio',
+            # YFinance ETF proxies
+            'HY ETF': 'hy_etf',
+            'IG ETF': 'ig_etf',
+            'TLT': 'tlt',
+            '10Y Yield': 'treasury_10y',
         }
 
         key = name_mapping.get(indicator, indicator.lower().replace(' ', '_'))
@@ -123,6 +146,9 @@ def prepare_data_dict(df: pd.DataFrame) -> dict:
 
     if 'hy_spread' in data_dict:
         data_dict['spread'] = data_dict['hy_spread']
+    elif 'hy_etf' in data_dict:
+        # Use HY ETF as spread proxy (inverted - lower price = wider spread)
+        data_dict['spread'] = data_dict['hy_etf']
 
     if 'sp500' in data_dict:
         data_dict['equity'] = data_dict['sp500']

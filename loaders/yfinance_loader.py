@@ -15,11 +15,28 @@ except ImportError:
     YFINANCE_AVAILABLE = False
 
 from .base import DataLoader, DataSchema
+from .rate_limiter import RateLimiter, ExponentialBackoff, create_yfinance_limiter
+
+# Module-level rate limiter (shared across instances)
+_yfinance_rate_limiter: Optional[RateLimiter] = None
+
+
+def get_yfinance_rate_limiter() -> RateLimiter:
+    """Get or create the yfinance rate limiter singleton."""
+    global _yfinance_rate_limiter
+    if _yfinance_rate_limiter is None:
+        _yfinance_rate_limiter = create_yfinance_limiter()
+    return _yfinance_rate_limiter
 
 
 class YFinanceLoader(DataLoader):
     """
     Yahoo Finance data loader using yfinance.
+    
+    Includes rate limiting to prevent IP bans:
+    - 분당 30건 제한 (보수적 설정)
+    - 호출 간 최소 2초 대기
+    - 오류 시 지수 백오프
     
     Supports:
         - ^VIX: CBOE Volatility Index
@@ -42,8 +59,14 @@ class YFinanceLoader(DataLoader):
     }
     
     def __init__(self, schema: Optional[DataSchema] = None):
-        """Initialize yfinance loader."""
+        """Initialize yfinance loader with rate limiting."""
         super().__init__(schema)
+        self._rate_limiter = get_yfinance_rate_limiter()
+        self._backoff = ExponentialBackoff(
+            initial_delay=2.0,    # yfinance needs longer initial delay
+            max_delay=120.0,      # Longer max delay for IP ban recovery
+            max_retries=3
+        )
         
         if not YFINANCE_AVAILABLE:
             print("Warning: yfinance not available. Install with: pip install yfinance")
@@ -81,6 +104,10 @@ class YFinanceLoader(DataLoader):
         if cached is not None:
             return cached
         
+        # Acquire rate limit before making API call
+        if not self._rate_limiter.acquire():
+            raise RuntimeError(f"yfinance rate limit timeout for {ticker}")
+        
         try:
             # Download data
             data = yf.download(
@@ -92,6 +119,9 @@ class YFinanceLoader(DataLoader):
             
             if data.empty:
                 raise ValueError(f"No data returned for {ticker}")
+            
+            # Record success for backoff
+            self._backoff.record_success()
             
             # Handle multi-level columns from yfinance
             if isinstance(data.columns, pd.MultiIndex):
@@ -120,6 +150,11 @@ class YFinanceLoader(DataLoader):
             return df
             
         except Exception as e:
+            # Record failure and apply backoff
+            wait_time = self._backoff.record_failure()
+            if wait_time > 0:
+                import time
+                time.sleep(wait_time)
             raise RuntimeError(f"Failed to load {ticker} from yfinance: {e}")
     
     def load_all_minimum_set(
@@ -130,12 +165,19 @@ class YFinanceLoader(DataLoader):
         """
         Load all minimum set yfinance indicators.
         
+        Includes market indices, volatility, and bond ETF proxies for
+        credit spreads when FRED data is unavailable.
+        
         Returns:
             Combined DataFrame in long format
         """
         yf_tickers = [
-            '^VIX',   # Volatility
+            '^VIX',   # Volatility Index
             '^GSPC',  # S&P 500
+            'HYG',    # iShares High Yield Corporate Bond ETF (HY Spread proxy)
+            'LQD',    # iShares Investment Grade Corporate Bond ETF (IG Spread proxy)
+            'TLT',    # iShares 20+ Year Treasury Bond ETF
+            '^TNX',   # 10-Year Treasury Yield
         ]
         
         return self.load_multiple(yf_tickers, start_date, end_date)

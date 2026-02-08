@@ -69,16 +69,28 @@ class DataLoader(ABC):
         """
         Load data for multiple tickers and combine.
         
+        Includes small delay between calls to avoid rate limit bursts.
+        
         Returns:
             DataFrame with columns: date, value, indicator (long format)
         """
+        import time
+        
         dfs = []
-        for ticker in tickers:
+        for i, ticker in enumerate(tickers):
             try:
                 df = self.load(ticker, start_date, end_date)
                 dfs.append(df)
+                
+                # Small delay between successful loads to avoid bursts
+                # (rate limiter handles main throttling, this is extra protection)
+                if i < len(tickers) - 1:
+                    time.sleep(0.1)
+                    
             except Exception as e:
                 print(f"Warning: Failed to load {ticker}: {e}")
+                # Small delay after failures too
+                time.sleep(0.5)
         
         if not dfs:
             return pd.DataFrame()

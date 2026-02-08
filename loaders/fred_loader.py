@@ -21,11 +21,28 @@ except ImportError:
     PDR_AVAILABLE = False
 
 from .base import DataLoader, DataSchema
+from .rate_limiter import RateLimiter, ExponentialBackoff, create_fred_limiter
+
+# Module-level rate limiter (shared across instances)
+_fred_rate_limiter: Optional[RateLimiter] = None
+
+
+def get_fred_rate_limiter() -> RateLimiter:
+    """Get or create the FRED rate limiter singleton."""
+    global _fred_rate_limiter
+    if _fred_rate_limiter is None:
+        _fred_rate_limiter = create_fred_limiter()
+    return _fred_rate_limiter
 
 
 class FREDLoader(DataLoader):
     """
     FRED data loader using fredapi or pandas-datareader.
+    
+    Includes rate limiting to prevent API bans:
+    - 분당 60건 제한 (FRED 무료 키 제한의 50%)
+    - 호출 간 최소 0.5초 대기
+    - 오류 시 지수 백오프
 
     Supports:
         - WALCL: Fed Total Assets
@@ -76,6 +93,12 @@ class FREDLoader(DataLoader):
         super().__init__(schema)
         self.api_key = api_key
         self._fred = None
+        self._rate_limiter = get_fred_rate_limiter()
+        self._backoff = ExponentialBackoff(
+            initial_delay=1.0,
+            max_delay=60.0,
+            max_retries=3
+        )
         
         if api_key and FRED_AVAILABLE:
             self._fred = Fred(api_key=api_key)
@@ -108,8 +131,13 @@ class FREDLoader(DataLoader):
         if cached is not None:
             return cached
         
+        # Acquire rate limit before making API call
+        if not self._rate_limiter.acquire():
+            raise RuntimeError(f"FRED rate limit timeout for {ticker}")
+        
         # Try fredapi first, then pandas-datareader
         series_data = None
+        last_error = None
         
         if self._fred is not None:
             try:
@@ -118,18 +146,33 @@ class FREDLoader(DataLoader):
                     observation_start=start_date,
                     observation_end=end_date,
                 )
+                self._backoff.record_success()
             except Exception as e:
+                last_error = e
+                wait_time = self._backoff.record_failure()
+                if wait_time > 0:
+                    import time
+                    time.sleep(wait_time)
                 print(f"fredapi failed for {ticker}: {e}")
         
         if series_data is None and PDR_AVAILABLE:
             try:
+                # Additional rate limit acquire for fallback
+                if not self._rate_limiter.acquire():
+                    raise RuntimeError(f"FRED rate limit timeout for {ticker}")
+                
                 series_data = pdr.DataReader(
                     ticker,
                     'fred',
                     start=start_date,
                     end=end_date,
                 )[ticker]
+                self._backoff.record_success()
             except Exception as e:
+                last_error = e
+                wait_time = self._backoff.record_failure()
+                if wait_time < 0:  # Max retries exceeded
+                    raise RuntimeError(f"Failed to load {ticker} from FRED after retries: {e}")
                 raise RuntimeError(f"Failed to load {ticker} from FRED: {e}")
         
         if series_data is None:
@@ -210,3 +253,26 @@ class FREDLoader(DataLoader):
     def is_available(self) -> bool:
         """Check if FRED data loading is available."""
         return FRED_AVAILABLE or PDR_AVAILABLE
+    
+    def is_ready(self) -> bool:
+        """
+        Check if FRED loader is actually ready to fetch data.
+        
+        Returns True only if:
+        - fredapi is available AND api_key is set, OR
+        - pandas_datareader is available
+        """
+        if self._fred is not None:
+            return True
+        return PDR_AVAILABLE
+    
+    def get_status_message(self) -> str:
+        """Get human-readable status message about FRED loader availability."""
+        if self._fred is not None:
+            return "FRED API 키 설정됨 (fredapi 사용)"
+        elif PDR_AVAILABLE:
+            return "pandas_datareader 사용 (API 키 없음)"
+        elif FRED_AVAILABLE:
+            return "fredapi 설치됨 (API 키 필요)"
+        else:
+            return "FRED 라이브러리 미설치 (fredapi 또는 pandas_datareader 필요)"

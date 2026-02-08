@@ -10,6 +10,24 @@ Configuration module for Liquidity Monitoring Dashboard.
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from enum import Enum
+import os
+
+
+def _get_fred_api_key() -> Optional[str]:
+    """
+    FRED API 키를 가져옵니다.
+    우선순위: Streamlit Secrets > 환경 변수
+    """
+    # 1. Streamlit Secrets 확인 (Streamlit Cloud용)
+    try:
+        import streamlit as st
+        if hasattr(st, 'secrets') and 'FRED_API_KEY' in st.secrets:
+            return st.secrets['FRED_API_KEY']
+    except Exception:
+        pass
+    
+    # 2. 환경 변수 확인 (로컬 개발용)
+    return os.environ.get('FRED_API_KEY')
 
 
 class Regime(Enum):
@@ -58,8 +76,8 @@ class AppConfig:
     default_lookback_years: int = 5
     zscore_window_years: int = 3
     
-    # FRED API key (optional - uses sample data if not provided)
-    fred_api_key: Optional[str] = None
+    # FRED API key (Streamlit Secrets 또는 환경변수 FRED_API_KEY에서 로드)
+    fred_api_key: Optional[str] = field(default_factory=_get_fred_api_key)
     
     # Regime scoring weights
     regime_weights: Dict[str, float] = field(default_factory=lambda: {
