@@ -8,7 +8,17 @@
       "Bash(python:*)",
       "Bash(cat:*)",
       "mcp__plugin_oh-my-claudecode_t__state_write",
-      "Bash(streamlit run:*)"
+      "Bash(streamlit run:*)",
+      "Bash(cmd.exe /c \"py --version 2>&1 || python --version 2>&1\")",
+      "Bash(cmd.exe /c \"py -m py_compile \"\"c:\\\\Users\\\\k1190\\\\OneDrive\\\\01.investment\\\\Macro_Liquidity_Monitor\\\\indicators\\\\regime.py\"\" && echo OK\")",
+      "Bash(cmd.exe /c \"cd /d \"\"c:\\\\Users\\\\k1190\\\\OneDrive\\\\01.investment\\\\Macro_Liquidity_Monitor\"\" && py -m py_compile indicators/regime.py && py -m py_compile components/charts.py && py -m py_compile app.py && py -m py_compile pages/1_Executive_Overview.py && echo ALL_OK\")",
+      "Bash(cmd.exe /c \"py -m py_compile \"\"c:\\\\Users\\\\k1190\\\\OneDrive\\\\01.investment\\\\Macro_Liquidity_Monitor\\\\indicators\\\\regime.py\"\" 2>&1 && py -m py_compile \"\"c:\\\\Users\\\\k1190\\\\OneDrive\\\\01.investment\\\\Macro_Liquidity_Monitor\\\\components\\\\charts.py\"\" 2>&1 && py -m py_compile \"\"c:\\\\Users\\\\k1190\\\\OneDrive\\\\01.investment\\\\Macro_Liquidity_Monitor\\\\app.py\"\" 2>&1 && py -m py_compile \"\"c:\\\\Users\\\\k1190\\\\OneDrive\\\\01.investment\\\\Macro_Liquidity_Monitor\\\\pages\\\\1_Executive_Overview.py\"\" 2>&1 && echo ALL_OK\")",
+      "Bash(cmd.exe /c \"cd /d \"\"c:\\\\Users\\\\k1190\\\\OneDrive\\\\01.investment\\\\Macro_Liquidity_Monitor\"\" && py -m pytest tests/ -v --tb=short 2>&1\")",
+      "Bash(py -m pytest tests/test_regime.py -v --tb=short)",
+      "Bash(echo:*)",
+      "Bash(py:*)",
+      "mcp__plugin_oh-my-claudecode_x__ask_codex",
+      "mcp__plugin_oh-my-claudecode_t__state_list_active"
     ]
   }
 }

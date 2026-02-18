@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import Regime, REGIME_COLORS
 from components.cards import render_regime_badge, render_metric_card, render_vulnerability_card
-from components.charts import create_timeseries_chart, create_regime_gauge
+from components.charts import create_timeseries_chart, create_regime_gauge, create_regime_history_chart
 from components.reports import (
     generate_daily_summary, 
     generate_belief_analysis, 
@@ -294,6 +294,62 @@ with col2:
             )
     else:
         st.info("현재 주요 취약 지점이 감지되지 않습니다.")
+
+
+# ============================================================================
+# REGIME HISTORY TIMELINE (레짐 이력)
+# ============================================================================
+
+st.markdown("---")
+st.markdown("### 📅 레짐 이력")
+
+regime_history_df = st.session_state.get('regime_history_df')
+
+if regime_history_df is not None and not regime_history_df.empty:
+    # Compute transition stats
+    current_regime = regime_result.primary_regime.value
+    hist_regimes = regime_history_df['regime'].tolist()
+    hist_dates = regime_history_df.index.tolist()
+
+    # Find last transition date and previous regime
+    last_transition_date = None
+    previous_regime = None
+    for i in range(len(hist_regimes) - 1, 0, -1):
+        if hist_regimes[i] != hist_regimes[i - 1]:
+            last_transition_date = hist_dates[i]
+            previous_regime = hist_regimes[i - 1]
+            break
+
+    # Days in current regime
+    if last_transition_date is not None:
+        days_in_regime = (pd.Timestamp.now() - last_transition_date).days
+        days_display = f"{days_in_regime}일"
+    else:
+        # No transition detected across 2-year lookback — actual duration unknown
+        days_display = ">730일 (2년 이상)"
+
+    # Display stats
+    stat_col1, stat_col2, stat_col3 = st.columns(3)
+    with stat_col1:
+        st.metric(
+            "현재 레짐 유지 기간",
+            days_display,
+        )
+    with stat_col2:
+        st.metric(
+            "이전 레짐",
+            previous_regime if previous_regime else "—",
+        )
+    with stat_col3:
+        st.metric(
+            "마지막 전환",
+            last_transition_date.strftime('%Y-%m-%d') if last_transition_date else "—",
+        )
+
+    fig_history = create_regime_history_chart(regime_history_df)
+    st.plotly_chart(fig_history, use_container_width=True)
+else:
+    st.info("레짐 이력 데이터 없음")
 
 
 # ============================================================================

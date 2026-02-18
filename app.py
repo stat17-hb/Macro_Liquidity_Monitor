@@ -57,13 +57,18 @@ def load_all_data(use_sample: bool = True, load_fed_balance_sheet: bool = False)
         fred = FREDLoader(api_key=config.fred_api_key)
         if fred.is_ready():
             try:
-                if load_fed_balance_sheet:
-                    # Load Fed balance sheet indicators
-                    fred_data = fred.load_fed_balance_sheet()
-                else:
-                    # Load minimum set (original indicators)
-                    fred_data = fred.load_all_minimum_set()
-                
+                # Always load minimum set (Fed BS + all macro indicators for analysis)
+                fred_data = fred.load_all_minimum_set()
+
+                # If Fed BS checkbox is on, additionally load Discount Window (WLDWSL)
+                if load_fed_balance_sheet and not fred_data.empty:
+                    try:
+                        dw_data = fred.load('WLDWSL')
+                        if not dw_data.empty:
+                            fred_data = pd.concat([fred_data, dw_data], ignore_index=True)
+                    except Exception:
+                        pass  # Discount Window is optional
+
                 if not fred_data.empty:
                     data_frames.append(fred_data)
                     indicator_count = len(fred_data['indicator'].unique())
@@ -230,10 +235,19 @@ regime_data = {
 
 regime_result = classifier.classify(regime_data)
 
+# Compute regime history (monthly, 2-year lookback)
+try:
+    regime_history_df = classifier.classify_history(regime_data, lookback_years=2)
+except Exception as e:
+    import traceback
+    traceback.print_exc()
+    regime_history_df = None
+
 # Store in session state
 st.session_state['data'] = df
 st.session_state['data_dict'] = data_dict
 st.session_state['regime_result'] = regime_result
+st.session_state['regime_history_df'] = regime_history_df
 
 # Main page header
 st.title("📊 유동성 모니터링 대시보드")

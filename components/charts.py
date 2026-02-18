@@ -362,6 +362,123 @@ def create_valuation_scatter(
     return fig
 
 
+def create_regime_history_chart(
+    regime_history_df: pd.DataFrame,
+    height: int = 350,
+) -> go.Figure:
+    """
+    Create a timeline chart showing regime history with confidence overlay.
+    레짐 이력 타임라인 차트 (신뢰도 오버레이 포함)
+
+    Args:
+        regime_history_df: DataFrame indexed by date with columns:
+            regime (str), confidence (float),
+            expansion, late_cycle, contraction, stress
+        height: Chart height in pixels
+
+    Returns:
+        Plotly Figure
+    """
+    if regime_history_df is None or regime_history_df.empty:
+        return go.Figure()
+
+    # Map regime strings to colors
+    regime_color_map = {
+        Regime.EXPANSION.value: REGIME_COLORS[Regime.EXPANSION],
+        Regime.LATE_CYCLE.value: REGIME_COLORS[Regime.LATE_CYCLE],
+        Regime.CONTRACTION.value: REGIME_COLORS[Regime.CONTRACTION],
+        Regime.STRESS.value: REGIME_COLORS[Regime.STRESS],
+    }
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    dates = regime_history_df.index.tolist()
+    regimes = regime_history_df['regime'].tolist()
+
+    # Group consecutive same-regime periods into bands
+    bands = []
+    if dates:
+        band_start = dates[0]
+        band_regime = regimes[0]
+        for i in range(1, len(dates)):
+            if regimes[i] != band_regime:
+                bands.append((band_start, dates[i], band_regime))
+                band_start = dates[i]
+                band_regime = regimes[i]
+        bands.append((band_start, pd.Timestamp.now(), band_regime))
+
+    # Add colored background bands for each regime period
+    for band_start, band_end, regime in bands:
+        color = regime_color_map.get(regime, '#6b7280')
+        fig.add_vrect(
+            x0=band_start,
+            x1=band_end,
+            fillcolor=color,
+            opacity=0.20,
+            layer='below',
+            line_width=0,
+        )
+
+    # Add confidence line on secondary y-axis
+    fig.add_trace(
+        go.Scatter(
+            x=regime_history_df.index,
+            y=regime_history_df['confidence'],
+            name='신뢰도',
+            mode='lines+markers',
+            line=dict(color='#ffffff', width=2),
+            marker=dict(size=5),
+            hovertemplate='%{x|%Y-%m}<br>신뢰도: %{y:.0%}<extra></extra>',
+        ),
+        secondary_y=True,
+    )
+
+    # Add vertical dashed lines at transition points
+    for i in range(1, len(regimes)):
+        if regimes[i] != regimes[i - 1]:
+            color = regime_color_map.get(regimes[i], '#6b7280')
+            fig.add_vline(
+                x=dates[i].isoformat(),
+                line=dict(color=color, dash='dot', width=1),
+            )
+            fig.add_annotation(
+                x=dates[i],
+                y=1.05,
+                yref='paper',
+                text=regimes[i],
+                showarrow=False,
+                font=dict(color=color, size=10),
+                xanchor='left',
+            )
+
+    fig.update_layout(
+        title=dict(text='레짐 이력 (최근 2년)', font=dict(size=14)),
+        height=height,
+        margin=dict(l=40, r=60, t=50, b=40),
+        hovermode='x unified',
+        template='plotly_dark',
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(showgrid=True, gridcolor=COLORS['grid'], gridwidth=0.5),
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+    )
+    fig.update_yaxes(
+        title_text='신뢰도',
+        secondary_y=True,
+        range=[0, 1.1],
+        tickformat='.0%',
+        showgrid=False,
+    )
+    fig.update_yaxes(
+        title_text='',
+        secondary_y=False,
+        showticklabels=False,
+        showgrid=False,
+    )
+
+    return fig
+
+
 def create_regime_gauge(
     scores: Dict[str, float],
     primary_regime: str,

@@ -141,6 +141,83 @@ class RegimeClassifier:
             data_quality_warning=warning,
         )
     
+    def classify_history(
+        self,
+        data: Dict[str, pd.Series],
+        lookback_years: int = 2,
+        freq: str = 'ME',
+    ) -> pd.DataFrame:
+        """
+        Classify regime for each historical date.
+        과거 레짐 이력 분류
+
+        Args:
+            data: Dict of indicator name -> time series (same format as classify())
+            lookback_years: Number of years of history to compute (default: 2)
+            freq: Pandas frequency string for date sampling (default: 'ME' = month end)
+
+        Returns:
+            DataFrame indexed by date with columns:
+                regime (str), confidence (float),
+                expansion, late_cycle, contraction, stress (float 0-100)
+        """
+        # Find the date range from available data
+        all_dates = []
+        for series in data.values():
+            if series is not None and len(series) > 0:
+                all_dates.extend(series.index.tolist())
+        if not all_dates:
+            return pd.DataFrame()
+
+        end_date = max(all_dates)
+        start_date = end_date - pd.DateOffset(years=lookback_years)
+
+        # Generate monthly sample dates
+        sample_dates = pd.date_range(start=start_date, end=end_date, freq=freq)
+        if len(sample_dates) == 0:
+            return pd.DataFrame()
+
+        records = []
+        for date in sample_dates:
+            # Slice each series up to this date
+            sliced = {}
+            for key, series in data.items():
+                if series is not None and len(series) > 0:
+                    s = series[series.index <= date]
+                    if len(s) > 0:
+                        sliced[key] = s
+
+            if not sliced:
+                continue
+
+            try:
+                metrics = self._extract_metrics(sliced, as_of_date=None)
+                scores = self._calculate_scores(metrics)
+                primary = scores.get_primary_regime()
+                sorted_scores = sorted(scores.to_dict().values(), reverse=True)
+                confidence = (
+                    (sorted_scores[0] - sorted_scores[1]) / 100
+                    if len(sorted_scores) >= 2
+                    else 1.0
+                )
+                records.append({
+                    'date': date,
+                    'regime': primary.value,
+                    'confidence': confidence,
+                    'expansion': scores.expansion,
+                    'late_cycle': scores.late_cycle,
+                    'contraction': scores.contraction,
+                    'stress': scores.stress,
+                })
+            except Exception:
+                continue
+
+        if not records:
+            return pd.DataFrame()
+
+        df = pd.DataFrame(records).set_index('date')
+        return df
+
     def _extract_metrics(
         self,
         data: Dict[str, pd.Series],
