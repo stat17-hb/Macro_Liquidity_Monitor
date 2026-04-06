@@ -115,6 +115,7 @@ class YFinanceLoader(DataLoader):
                 start=start_date,
                 end=end_date,
                 progress=False,
+                auto_adjust=False,
             )
             
             if data.empty:

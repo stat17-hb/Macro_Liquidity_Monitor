@@ -75,7 +75,7 @@ class FREDLoader(DataLoader):
         'NFCI': 'FCI',
         'TOTALSL': 'Consumer Credit',
         'SOFR': 'SOFR',
-        'WLDWSL': 'Discount Window Lending',
+        'H41RESPPALDNNWW': 'Fed Lending Net',
     }
     
     def __init__(
@@ -245,7 +245,7 @@ class FREDLoader(DataLoader):
             'RRPONTSYD',  # Reverse Repo Agreements
             'WTREGEN',    # Treasury General Account (TGA)
             'WLCFLPCL',   # Fed Lending Facilities (Total)
-            'WLDWSL',     # Discount Window Lending
+            'H41RESPPALDNNWW',  # Fed Lending (Net, all facilities)
         ]
 
         return self.load_multiple(fed_balance_sheet_tickers, start_date, end_date)

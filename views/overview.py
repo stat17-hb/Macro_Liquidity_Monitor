@@ -307,7 +307,7 @@ def render_overview(data_dict, regime_result=None):
             st.info(f"마지막 전환: {last_transition_date.strftime('%Y-%m-%d') if last_transition_date else '—'}")
     
         fig_history = create_regime_history_chart(regime_history_df)
-        st.plotly_chart(fig_history, use_container_width=True)
+        st.plotly_chart(fig_history, width="stretch")
     else:
         st.info("레짐 이력 데이터 없음")
     

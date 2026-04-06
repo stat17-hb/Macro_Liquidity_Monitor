@@ -305,11 +305,11 @@ FED_BALANCE_SHEET_INDICATORS: Dict[str, IndicatorConfig] = {
         ticker='WLCFLPCL',
         category='balance_sheet'
     ),
-    'fed_lending_discount': IndicatorConfig(
-        name='Discount Window Lending',
-        description='할인 창구 대출 - 은행 스트레스',
+    'fed_lending_net': IndicatorConfig(
+        name='Fed Lending Net',
+        description='연준 총 대출(순) - 은행 스트레스 종합 지표',
         source='fred',
-        ticker='WLDWSL',
+        ticker='H41RESPPALDNNWW',
         category='balance_sheet',
         invert=True  # High lending = distress
     ),
