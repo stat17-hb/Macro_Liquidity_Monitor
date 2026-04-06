@@ -239,18 +239,36 @@ def get_global_css() -> str:
         
         /* ========== Tab Styling ========== */
         .stTabs [data-baseweb="tab-list"] {{
-            gap: 8px;
+            gap: 12px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid {c['border']};
         }}
         
         .stTabs [data-baseweb="tab"] {{
-            background-color: {c['bg_card']};
+            background-color: transparent;
             color: {c['text_muted']};
             border-radius: 8px 8px 0 0;
+            padding: 10px 16px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            border-bottom: none;
+        }}
+        
+        .stTabs [data-baseweb="tab"]:hover {{
+            background-color: {c['bg_hover']};
+            color: {c['text_primary']};
         }}
         
         .stTabs [aria-selected="true"] {{
-            background-color: {c['primary']};
-            color: white;
+            background-color: {c['bg_elevated']};
+            color: {c['primary']} !important;
+            border: 1px solid {c['border']};
+            border-bottom: 3px solid {c['primary']};
+            font-weight: bold;
+        }}
+        
+        .stTabs [data-baseweb="tab-highlight"] {{
+            display: none;
         }}
         
         /* ========== Expander Styling ========== */

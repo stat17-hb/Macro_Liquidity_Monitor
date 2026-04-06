@@ -259,44 +259,94 @@ st.markdown("""
 
 st.markdown("---")
 
-# Quick navigation
-st.markdown("### 📍 페이지 탐색")
-col1, col2, col3 = st.columns(3)
+# ============================================================================
+# HERO SECTION (Overview & Regime Badge)
+# ============================================================================
 
-with col1:
-    st.page_link("pages/1_Executive_Overview.py", label="📈 Executive Overview", icon="📈")
-    st.page_link("pages/2_Balance_Sheet.py", label="🏦 대차대조표", icon="🏦")
+from components.cards import render_regime_badge
+from components.reports import generate_daily_summary
+from components.styles import render_info_box
+from indicators.transforms import calc_3m_annualized, calc_zscore, calc_percentile, calc_1m_change
 
-with col2:
-    st.page_link("pages/3_Collateral.py", label="💎 담보/변동성", icon="💎")
-    st.page_link("pages/4_Marginal_Belief.py", label="🧠 신념/기대", icon="🧠")
+# 1. Regime Badge
+render_regime_badge(
+    regime=regime_result.primary_regime,
+    explanations=regime_result.explanations,
+    confidence=regime_result.confidence,
+)
 
-with col3:
-    st.page_link("pages/5_Leverage.py", label="⚡ 레버리지", icon="⚡")
-    st.page_link("pages/6_Alerts.py", label="🚨 알림", icon="🚨")
+# 2. Extract metrics for summary
+metrics = {}
+if 'bank_credit' in data_dict:
+    credit = data_dict['bank_credit']
+    credit_3m = calc_3m_annualized(credit, periods_3m=13)
+    metrics['credit_growth_3m'] = credit_3m.iloc[-1] if len(credit_3m) > 0 else None
+if 'hy_spread' in data_dict:
+    spread = data_dict['hy_spread']
+    spread_z = calc_zscore(spread, window_years=3, periods_per_year=52)
+    metrics['spread_zscore'] = spread_z.iloc[-1] if len(spread_z) > 0 else None
+if 'vix' in data_dict:
+    vix = data_dict['vix']
+    vix_pct = calc_percentile(vix, window_years=3, periods_per_year=252)
+    metrics['vix_percentile'] = vix_pct.iloc[-1] if len(vix_pct) > 0 else None
+if 'sp500' in data_dict:
+    equity = data_dict['sp500']
+    equity_1m = calc_1m_change(equity)
+    metrics['equity_1m'] = equity_1m.iloc[-1] if len(equity_1m) > 0 else None
+
+# 3. Generate and Render Summary
+summary = generate_daily_summary(
+    regime=regime_result.primary_regime,
+    credit_growth=metrics.get('credit_growth_3m'),
+    spread_zscore=metrics.get('spread_zscore'),
+    vix_percentile=metrics.get('vix_percentile'),
+    equity_1m=metrics.get('equity_1m'),
+)
+render_info_box(content=summary, title="📝 오늘의 한 줄 요약")
 
 st.markdown("---")
 
-# Data summary
-st.markdown("### 📊 데이터 현황")
-col1, col2, col3, col4 = st.columns(4)
+# ============================================================================
+# TABS NAVIGATION SYSTEM
+# ============================================================================
 
-with col1:
-    st.metric("총 지표 수", len(df['indicator'].unique()))
-with col2:
-    if not df.empty:
-        st.metric("데이터 시작", df['date'].min().strftime('%Y-%m-%d'))
-with col3:
-    if not df.empty:
-        st.metric("데이터 종료", df['date'].max().strftime('%Y-%m-%d'))
-with col4:
-    st.metric("데이터 소스", "샘플" if use_sample else "실시간")
+tabs = st.tabs([
+    "📈 Executive Overview",
+    "🏦 대차대조표",
+    "💎 담보/변동성",
+    "🧠 신념/기대",
+    "⚡ 레버리지",
+    "🚨 알림",
+    "🦅 QT 모니터링"
+])
 
-# Show available indicators
-with st.expander("사용 가능한 지표 목록"):
-    indicators = df['indicator'].unique().tolist()
-    for i in range(0, len(indicators), 3):
-        cols = st.columns(3)
-        for j, col in enumerate(cols):
-            if i + j < len(indicators):
-                col.markdown(f"• {indicators[i + j]}")
+# Import views
+from views.overview import render_overview
+from views.balance_sheet import render_balance_sheet
+from views.collateral import render_collateral
+from views.marginal_belief import render_marginal_belief
+from views.leverage import render_leverage
+from views.alerts import render_alerts
+from views.qt_monitoring import render_qt_monitoring
+
+with tabs[0]:
+    render_overview(data_dict, regime_result)
+    
+with tabs[1]:
+    render_balance_sheet(data_dict, regime_result)
+    
+with tabs[2]:
+    render_collateral(data_dict, regime_result)
+
+with tabs[3]:
+    render_marginal_belief(data_dict, regime_result)
+
+with tabs[4]:
+    render_leverage(data_dict, regime_result)
+
+with tabs[5]:
+    render_alerts(data_dict, regime_result)
+
+with tabs[6]:
+    render_qt_monitoring(data_dict, regime_result)
+
