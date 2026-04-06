@@ -21,17 +21,17 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import Regime, REGIME_COLORS
 
-# Color palette for consistency - defined directly to avoid circular imports
+# Color palette for consistency - aligned with Soft UI theme
 COLORS = {
     'primary': '#3b82f6',      # Blue
     'secondary': '#8b5cf6',    # Purple
-    'success': '#22c55e',      # Green
+    'success': '#10b981',      # Green
     'warning': '#f59e0b',      # Amber
     'danger': '#ef4444',       # Red
     'neutral': '#6b7280',      # Gray
-    'bg_dark': '#1e293b',      # Dark background
+    'bg_dark': '#1e1e1e',      # Dark background
     'bg_light': '#e2e8f0',     # Light background
-    'grid': '#374151',         # Grid lines
+    'grid': 'rgba(255,255,255,0.05)', # Ultra soft grid lines
 }
 
 
@@ -452,7 +452,7 @@ def create_regime_history_chart(
             )
 
     fig.update_layout(
-        title=dict(text='레짐 이력 (최근 2년)', font=dict(size=14)),
+        title=dict(text='레짐 이력 (최근 2년)', font=dict(size=14, color='#f5f5f7')),
         height=height,
         margin=dict(l=40, r=60, t=50, b=40),
         hovermode='x unified',
@@ -522,7 +522,7 @@ def create_regime_gauge(
         ))
     
     fig.update_layout(
-        title=dict(text='레짐 점수', font=dict(size=14)),
+        title=dict(text='레짐 점수', font=dict(size=14, color='#f5f5f7')),
         height=height,
         margin=dict(l=100, r=40, t=40, b=20),
         template='plotly_dark',

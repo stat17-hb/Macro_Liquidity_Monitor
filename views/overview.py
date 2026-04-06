@@ -80,10 +80,12 @@ def render_overview(data_dict, regime_result=None):
             latest = credit.iloc[-1] / 1e12 if len(credit) > 0 else 0
             change_1m = calc_1m_change(credit).iloc[-1] if len(credit) > 21 else None
             
-            st.metric(
-                "🏦 은행 신용",
-                f"${latest:.2f}T",
-                f"{change_1m:+.1f}% (1M)" if change_1m and not np.isnan(change_1m) else None,
+            render_metric_card(
+                title="🏦 은행 신용",
+                value=latest,
+                format_str="${:.2f}",
+                unit="T",
+                change_1m=change_1m if change_1m and not np.isnan(change_1m) else None
             )
         else:
             st.info("Bank Credit 데이터 없음")
@@ -95,11 +97,13 @@ def render_overview(data_dict, regime_result=None):
             latest = spread.iloc[-1] * 100 if len(spread) > 0 else 0
             change_1m = calc_1m_change(spread).iloc[-1] if len(spread) > 4 else None
             
-            st.metric(
-                "📈 HY 스프레드",
-                f"{latest:.0f} bps",
-                f"{change_1m:+.1f}%" if change_1m and not np.isnan(change_1m) else None,
-                delta_color="inverse",
+            render_metric_card(
+                title="📈 HY 스프레드",
+                value=latest,
+                format_str="{:.0f}",
+                unit=" bps",
+                change_1m=change_1m if change_1m and not np.isnan(change_1m) else None,
+                invert=True
             )
         else:
             st.info("HY Spread 데이터 없음")
@@ -111,11 +115,12 @@ def render_overview(data_dict, regime_result=None):
             latest = vix.iloc[-1] if len(vix) > 0 else 0
             change_1m = calc_1m_change(vix).iloc[-1] if len(vix) > 21 else None
             
-            st.metric(
-                "⚡ VIX",
-                f"{latest:.1f}",
-                f"{change_1m:+.1f}%" if change_1m and not np.isnan(change_1m) else None,
-                delta_color="inverse",
+            render_metric_card(
+                title="⚡ VIX",
+                value=latest,
+                format_str="{:.1f}",
+                change_1m=change_1m if change_1m and not np.isnan(change_1m) else None,
+                invert=True
             )
         else:
             st.info("VIX 데이터 없음")
@@ -129,11 +134,13 @@ def render_overview(data_dict, regime_result=None):
             latest = ry.iloc[-1] if len(ry) > 0 else 0
             change_1m = calc_1m_change(ry).iloc[-1] if len(ry) > 4 else None
             
-            st.metric(
-                "💰 실질금리 (10Y)",
-                f"{latest:+.2f}%",
-                f"{change_1m:+.2f}pp" if change_1m and not np.isnan(change_1m) else None,
-                delta_color="inverse",
+            render_metric_card(
+                title="💰 실질금리 (10Y)",
+                value=latest,
+                format_str="{:+.2f}",
+                unit="%",
+                change_1m=change_1m if change_1m and not np.isnan(change_1m) else None,
+                invert=True
             )
         else:
             st.info("Real Yield 데이터 없음")
@@ -145,10 +152,11 @@ def render_overview(data_dict, regime_result=None):
             latest = sp.iloc[-1] if len(sp) > 0 else 0
             ret_1m = calc_1m_change(sp).iloc[-1] if len(sp) > 21 else None
             
-            st.metric(
-                "📊 S&P 500",
-                f"{latest:,.0f}",
-                f"{ret_1m:+.1f}% (1M)" if ret_1m and not np.isnan(ret_1m) else None,
+            render_metric_card(
+                title="📊 S&P 500",
+                value=latest,
+                format_str="{:,.0f}",
+                change_1m=ret_1m if ret_1m and not np.isnan(ret_1m) else None,
             )
         else:
             st.info("S&P 500 데이터 없음")
@@ -160,10 +168,12 @@ def render_overview(data_dict, regime_result=None):
             latest = pe.iloc[-1] if len(pe) > 0 else 0
             zscore = calc_zscore(pe, window_years=3, periods_per_year=52).iloc[-1] if len(pe) > 156 else None
             
-            st.metric(
-                "📐 P/E Ratio",
-                f"{latest:.1f}x",
-                f"z={zscore:+.1f}" if zscore and not np.isnan(zscore) else None,
+            render_metric_card(
+                title="📐 P/E Ratio",
+                value=latest,
+                format_str="{:.1f}",
+                unit="x",
+                zscore=zscore if zscore and not np.isnan(zscore) else None,
             )
         else:
             st.info("P/E Ratio 데이터 없음")
@@ -173,7 +183,7 @@ def render_overview(data_dict, regime_result=None):
     # KEY TIME SERIES (핵심 타임시리즈)
     # ============================================================================
     
-    st.markdown("---")
+    st.markdown("<div style='height: 40px'></div>", unsafe_allow_html=True)
     st.markdown("### 📈 핵심 타임시리즈")
     
     col1, col2 = st.columns(2)
@@ -216,7 +226,7 @@ def render_overview(data_dict, regime_result=None):
     # REGIME GAUGE
     # ============================================================================
     
-    st.markdown("---")
+    st.markdown("<div style='height: 40px'></div>", unsafe_allow_html=True)
     
     col1, col2 = st.columns([1, 2])
     
@@ -254,7 +264,7 @@ def render_overview(data_dict, regime_result=None):
     # REGIME HISTORY TIMELINE (레짐 이력)
     # ============================================================================
     
-    st.markdown("---")
+    st.markdown("<div style='height: 40px'></div>", unsafe_allow_html=True)
     st.markdown("### 📅 레짐 이력")
     
     regime_history_df = st.session_state.get('regime_history_df')
@@ -285,20 +295,16 @@ def render_overview(data_dict, regime_result=None):
         # Display stats
         stat_col1, stat_col2, stat_col3 = st.columns(3)
         with stat_col1:
-            st.metric(
-                "현재 레짐 유지 기간",
-                days_display,
+            render_metric_card(
+                title="현재 레짐 유지 기간",
+                value=days_in_regime if last_transition_date is not None else 730,
+                format_str="{:.0f}" if last_transition_date is not None else ">{:.0f}",
+                unit="일 (2년 이상)" if last_transition_date is None else "일"
             )
         with stat_col2:
-            st.metric(
-                "이전 레짐",
-                previous_regime if previous_regime else "—",
-            )
+            st.info(f"이전 레짐: {previous_regime if previous_regime else '—'}")
         with stat_col3:
-            st.metric(
-                "마지막 전환",
-                last_transition_date.strftime('%Y-%m-%d') if last_transition_date else "—",
-            )
+            st.info(f"마지막 전환: {last_transition_date.strftime('%Y-%m-%d') if last_transition_date else '—'}")
     
         fig_history = create_regime_history_chart(regime_history_df)
         st.plotly_chart(fig_history, use_container_width=True)
@@ -310,7 +316,7 @@ def render_overview(data_dict, regime_result=None):
     # BELIEF ANALYSIS (신념 분석)
     # ============================================================================
     
-    st.markdown("---")
+    st.markdown("<div style='height: 40px'></div>", unsafe_allow_html=True)
     st.markdown("### 🧠 신념 분석")
     st.markdown("*현재 대차대조표를 확장시키는 신념은 무엇인가?*")
     
@@ -354,6 +360,6 @@ def render_overview(data_dict, regime_result=None):
     # ============================================================================
     
     if regime_result.data_quality_warning:
-        st.markdown("---")
+        st.markdown("<div style='height: 40px'></div>", unsafe_allow_html=True)
         st.warning(f"⚠️ 데이터 품질 경고: {regime_result.data_quality_warning}")
     

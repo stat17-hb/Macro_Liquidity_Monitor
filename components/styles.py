@@ -23,8 +23,8 @@ COLOR_PALETTE = {
     'secondary_light': '#a78bfa',  # Light Purple
     
     # Status colors
-    'success': '#22c55e',          # Green - 성공, 안전, 확장
-    'success_dark': '#16a34a',     # Dark Green
+    'success': '#10b981',          # Green - 성공, 안전, 확장 (에메랄드 그린)
+    'success_dark': '#059669',     # Dark Green
     'warning': '#f59e0b',          # Amber - 경고, 주의
     'warning_light': '#fbbf24',    # Light Amber
     'danger': '#ef4444',           # Red - 위험, 오류
@@ -36,24 +36,24 @@ COLOR_PALETTE = {
     'neutral_light': '#9ca3af',    # Light Gray
     'neutral_dark': '#4b5563',     # Dark Gray
     
-    # Background colors (Dark theme - Pure Black)
-    'bg_base': '#0a0a0a',          # 가장 어두운 배경 (순수 블랙)
-    'bg_card': '#171717',          # 카드 배경
-    'bg_elevated': '#262626',      # 강조 배경
-    'bg_hover': '#3a3a3a',         # 호버 상태
+    # Background colors (Soft Dark Theme)
+    'bg_base': '#121212',          # 앱 전체 배경 (매우 부드러운 다크 그레이)
+    'bg_card': '#1e1e1e',          # 카드 배경 (살짝 입체감)
+    'bg_elevated': '#2c2c2e',      # 강조 스택 (가장 튀어나온 요소)
+    'bg_hover': '#323234',         # 호버 상태
     
-    # Border colors (Neutral Gray)
-    'border': '#2a2a2a',           # 기본 테두리
-    'border_light': '#3a3a3a',     # 밝은 테두리
+    # Border colors (Neutral Gray, Very Subtle)
+    'border': '#2c2c2e',           # 기본 테두리
+    'border_light': '#3a3a3c',     # 밝은 테두리
     
     # Text colors (Neutral)
-    'text_primary': '#fafafa',     # 주요 텍스트 (거의 흰색)
-    'text_secondary': '#e5e5e5',   # 보조 텍스트
-    'text_muted': '#a3a3a3',       # 흐린 텍스트
+    'text_primary': '#f5f5f7',     # 주요 텍스트 (완전 흰색보다 눈이 편한 오프화이트)
+    'text_secondary': '#ebebf599', # 보조 텍스트 (약 60% 불투명도)
+    'text_muted': '#ebebf54d',     # 흐린 텍스트 (약 30% 불투명도)
     'text_disabled': '#737373',    # 비활성 텍스트
     
     # Chart colors
-    'grid': '#2a2a2a',             # 차트 그리드 라인
+    'grid': '#2c2c2e',             # 차트 그리드 라인
     'chart_bg': 'rgba(0,0,0,0)',   # 투명 차트 배경
 }
 
@@ -86,11 +86,18 @@ def get_global_css() -> str:
     
     return f"""
     <style>
-        /* ========== Force Dark Mode ========== */
+        /* ========== Font Import ========== */
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+        /* ========== Force Dark Mode & Font ========== */
         :root {{
             color-scheme: dark !important;
         }}
         
+        * {{
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif !important;
+        }}
+
         /* ========== Base App Styling ========== */
         .stApp {{
             background: {c['bg_base']} !important;
@@ -108,12 +115,14 @@ def get_global_css() -> str:
         .main .block-container {{
             background-color: {c['bg_base']} !important;
             color: {c['text_primary']} !important;
+            padding-top: 3rem; /* Add some breathing room at top */
         }}
         
         /* ========== Sidebar Styling ========== */
         [data-testid="stSidebar"] {{
-            background: {c['bg_base']};
-            border-right: 1px solid {c['border']};
+            background: {c['bg_card']};
+            border-right: none;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
         }}
         
         [data-testid="stSidebar"] .stMarkdown p,
@@ -138,60 +147,72 @@ def get_global_css() -> str:
         /* ========== Main Content Headers ========== */
         h1, h2, h3 {{
             color: {c['text_primary']} !important;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            font-weight: 700 !important;
+            letter-spacing: -0.02em;
         }}
         
         /* ========== Body Text ========== */
         p, span, label, .stMarkdown {{
             color: {c['text_secondary']} !important;
+            line-height: 1.6;
         }}
         
         /* ========== Metric Cards ========== */
         [data-testid="stMetricValue"] {{
             color: {c['text_primary']} !important;
-            font-weight: 700;
+            font-weight: 800 !important;
+            font-size: 2em !important;
         }}
         
         [data-testid="stMetricLabel"] {{
             color: {c['text_muted']} !important;
+            font-weight: 500 !important;
+            font-size: 0.95em !important;
+            margin-bottom: 4px;
         }}
         
         /* ========== Buttons ========== */
         .stButton > button {{
-            background: linear-gradient(135deg, {c['bg_elevated']} 0%, {c['bg_card']} 100%);
-            color: white !important;
-            border: 1px solid {c['border_light']};
+            background: {c['bg_elevated']};
+            color: {c['text_primary']} !important;
+            border: none;
+            border-radius: 12px;
             font-weight: 600;
-            transition: all 0.2s ease;
+            padding: 10px 20px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }}
         
         .stButton > button:hover {{
-            background: linear-gradient(135deg, {c['bg_hover']} 0%, {c['bg_elevated']} 100%);
-            border-color: {c['neutral']};
-            transform: translateY(-1px);
+            background: {c['bg_hover']};
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+            color: #fff !important;
         }}
         
         /* ========== Alert Boxes ========== */
         .stAlert {{
             background-color: {c['bg_card']};
-            border: 1px solid {c['bg_elevated']};
-            border-radius: 8px;
+            border: transparent !important;
+            border-radius: 16px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }}
         
         /* ========== Page Links ========== */
         [data-testid="stPageLink"] {{
-            background: linear-gradient(135deg, {c['bg_card']} 0%, {c['bg_elevated']} 100%);
-            border: 1px solid {c['border_light']};
-            border-radius: 8px;
-            padding: 8px 16px;
-            margin: 4px 0;
-            transition: all 0.3s ease;
+            background: {c['bg_card']} !important;
+            border: transparent !important;
+            border-radius: 12px;
+            padding: 10px 16px;
+            margin: 6px 0;
+            transition: all 0.25s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }}
         
         [data-testid="stPageLink"]:hover {{
-            background: linear-gradient(135deg, {c['bg_elevated']} 0%, {c['bg_hover']} 100%);
-            border-color: {c['primary']};
+            background: {c['bg_hover']} !important;
             transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
         }}
         
         [data-testid="stPageLink"] p {{
@@ -219,11 +240,6 @@ def get_global_css() -> str:
             font-weight: 600;
         }}
         
-        /* Also target by content if needed */
-        [data-testid="stSidebarNav"] li a span {{
-            /* Ensure proper text display */
-        }}
-        
         /* ========== Custom Scrollbar ========== */
         ::-webkit-scrollbar {{
             width: 8px;
@@ -234,37 +250,38 @@ def get_global_css() -> str:
             border-radius: 4px;
         }}
         ::-webkit-scrollbar-track {{
-            background: {c['bg_base']};
+            background: transparent;
         }}
         
         /* ========== Tab Styling ========== */
         .stTabs [data-baseweb="tab-list"] {{
             gap: 12px;
             padding-bottom: 4px;
-            border-bottom: 1px solid {c['border']};
+            border-bottom: none;
+            background-color: transparent;
         }}
         
         .stTabs [data-baseweb="tab"] {{
             background-color: transparent;
             color: {c['text_muted']};
-            border-radius: 8px 8px 0 0;
-            padding: 10px 16px;
-            transition: all 0.2s ease;
-            border: 1px solid transparent;
-            border-bottom: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            transition: all 0.25s ease;
+            border: none;
+            font-weight: 600;
         }}
         
         .stTabs [data-baseweb="tab"]:hover {{
-            background-color: {c['bg_hover']};
+            background-color: {c['bg_elevated']};
             color: {c['text_primary']};
         }}
         
         .stTabs [aria-selected="true"] {{
-            background-color: {c['bg_elevated']};
-            color: {c['primary']} !important;
+            background-color: {c['bg_card']};
+            color: {c['text_primary']} !important;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
             border: 1px solid {c['border']};
-            border-bottom: 3px solid {c['primary']};
-            font-weight: bold;
+            font-weight: 700;
         }}
         
         .stTabs [data-baseweb="tab-highlight"] {{
@@ -274,28 +291,44 @@ def get_global_css() -> str:
         /* ========== Expander Styling ========== */
         .streamlit-expanderHeader {{
             background-color: {c['bg_card']};
-            border-radius: 8px;
+            border-radius: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.25s ease;
+        }}
+        .streamlit-expanderHeader:hover {{
+            background-color: {c['bg_hover']};
         }}
         
         .streamlit-expanderContent {{
             background-color: {c['bg_card']};
-            border: 1px solid {c['border']};
-            border-top: none;
-            border-radius: 0 0 8px 8px;
+            border: none;
+            border-radius: 0 0 16px 16px;
         }}
         
         /* ========== Divider ========== */
         hr {{
-            border-color: {c['border']};
+            border: none;
+            height: 0;
+            margin: 0; /* Remove lines completely to rely on whitespace */
+            background-color: transparent;
         }}
         
-        /* ========== Metric Container - Force Dark Background ========== */
+        /* ========== Metric Container - Soft UI ========== */
         [data-testid="stMetric"],
         [data-testid="metric-container"] {{
             background-color: {c['bg_card']} !important;
-            padding: 16px !important;
-            border-radius: 8px !important;
-            border: 1px solid {c['border']} !important;
+            padding: 20px !important;
+            border-radius: 20px !important;
+            border: transparent !important;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.15) !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }}
+        
+        [data-testid="stMetric"]:hover,
+        [data-testid="metric-container"]:hover {{
+            transform: translateY(-4px) !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25) !important;
+            background-color: {c['bg_hover']} !important;
         }}
         
         /* ========== Column Containers ========== */
@@ -311,15 +344,21 @@ def get_global_css() -> str:
         /* ========== File Uploader ========== */
         [data-testid="stFileUploader"] {{
             background-color: {c['bg_card']};
-            border: 1px dashed {c['border_light']};
-            border-radius: 8px;
-            padding: 16px;
+            border: 2px dashed {c['border']};
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.25s ease;
+        }}
+        [data-testid="stFileUploader"]:hover {{
+            border-color: {c['primary']};
+            background-color: {c['bg_hover']};
         }}
         
         /* ========== Text Input ========== */
         .stTextInput > div > div {{
             background-color: {c['bg_card']};
             border-color: {c['border']};
+            border-radius: 12px;
         }}
         
         /* ========== Checkbox ========== */
@@ -331,13 +370,16 @@ def get_global_css() -> str:
         blockquote {{
             background-color: {c['bg_card']};
             border-left: 4px solid {c['primary']};
-            padding: 12px 16px;
-            border-radius: 0 8px 8px 0;
-            margin: 8px 0;
+            padding: 16px 20px;
+            border-radius: 0 16px 16px 0;
+            margin: 16px 0 24px 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }}
         
         blockquote p {{
             color: {c['text_secondary']} !important;
+            font-size: 1.05em;
+            margin: 0;
         }}
     </style>
     """
@@ -399,10 +441,12 @@ def render_info_box(
     <div style="
         background: linear-gradient(135deg, {c['bg_card']}, {c['bg_elevated']});
         border-left: 4px solid {border};
-        border-radius: 0 12px 12px 0;
-        padding: 16px 20px;
-        margin-bottom: 16px;
-    ">
+        border-radius: 12px;
+        padding: 20px 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+        transition: transform 0.25s ease;
+    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
         {title_html}
         <p style="color: {c['text_secondary']}; font-size: 1.05em; margin: 0;">
             {content}
