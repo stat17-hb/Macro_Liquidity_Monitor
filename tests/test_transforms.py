@@ -16,7 +16,8 @@ from indicators.transforms import (
 @pytest.fixture
 def sample_series():
     dates = pd.date_range('2020-01-01', periods=300, freq='W')
-    values = 100 + np.cumsum(np.random.randn(300))
+    rng = np.random.default_rng(0)
+    values = 100 + np.cumsum(rng.normal(size=300))
     return pd.Series(values, index=dates)
 
 def test_calc_yoy(sample_series):

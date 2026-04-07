@@ -8,6 +8,7 @@ Streamlit 카드 컴포넌트
 - 알림 카드
 - 취약 지점 카드
 """
+from html import escape
 from typing import Optional, List, Dict, Any
 import streamlit as st
 
@@ -139,85 +140,57 @@ def render_metric_card(
         formatted_value = str(value)
     
     # Build change indicators
+    change_chips: List[str] = []
+    for label, change in [('1W', change_1w), ('1M', change_1m), ('3M', change_3m)]:
+        if change is None:
+            continue
+
+        change_color = COLOR_PALETTE['success'] if (change > 0) != invert else COLOR_PALETTE['danger']
+        arrow = '↑' if change > 0 else '↓'
+        change_chips.append(
+            (
+                f'<div style="background: {change_color}22; color: {change_color}; padding: 4px 8px; '
+                'border-radius: 12px; font-size: 0.8em; font-weight: 700; display: flex; '
+                f'align-items: center; gap: 4px;"><span>{label}</span><span>{arrow} {abs(change):.1f}%</span></div>'
+            )
+        )
+
     changes_html = ''
-    if change_1w is not None or change_1m is not None or change_3m is not None:
-        changes_html = '<div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">'
-        
-        for label, change in [('1W', change_1w), ('1M', change_1m), ('3M', change_3m)]:
-            if change is not None:
-                change_color = COLOR_PALETTE['success'] if (change > 0) != invert else COLOR_PALETTE['danger']
-                arrow = '↑' if change > 0 else '↓'
-                changes_html += f'''
-                    <div style="
-                        background: {change_color}22;
-                        color: {change_color};
-                        padding: 4px 8px;
-                        border-radius: 12px;
-                        font-size: 0.8em;
-                        font-weight: 700;
-                        display: flex;
-                        align-items: center;
-                        gap: 4px;
-                    ">
-                        <span>{label}</span> <span>{arrow} {abs(change):.1f}%</span>
-                    </div>
-                '''
-        
-        changes_html += '</div>'
+    if change_chips:
+        changes_html = (
+            '<div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">'
+            + ''.join(change_chips)
+            + '</div>'
+        )
     
     # Z-score indicator
     zscore_html = ''
     if zscore is not None:
         z_color = COLOR_PALETTE['danger'] if abs(zscore) > 2 else (COLOR_PALETTE['warning'] if abs(zscore) > 1 else COLOR_PALETTE['success'])
-        zscore_html = f'''
-            <div style="
-                margin-top: 6px;
-                color: {z_color};
-                font-size: 0.85em;
-                font-weight: 600;
-            ">
-                Z-score: {zscore:+.2f}
-            </div>
-        '''
+        zscore_html = (
+            f'<div style="margin-top: 6px; color: {z_color}; font-size: 0.85em; font-weight: 600;">'
+            f'Z-score: {zscore:+.2f}'
+            '</div>'
+        )
     
     # Card HTML
-    card_html = f"""
-    <div style="
-        background-color: {COLOR_PALETTE['bg_card']};
-        border-radius: 20px;
-        padding: 20px;
-        height: 100%;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
-    " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.2)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';">
-        <div style="
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 6px;
-            background-color: {status_color};
-        "></div>
-        <div style="color: {COLOR_PALETTE['text_muted']}; font-size: 0.95em; font-weight: 600; margin-bottom: 8px; margin-left: 4px;">
-            {title}
-        </div>
-        <div style="
-            color: {COLOR_PALETTE['text_primary']};
-            font-size: 2em;
-            font-weight: 800;
-            margin-left: 4px;
-            line-height: 1.2;
-        ">
-            {formatted_value}<span style="font-size: 0.6em; color: {COLOR_PALETTE['text_muted']}; margin-left: 4px;">{unit}</span>
-        </div>
-        <div style="margin-left: 4px;">
-            {zscore_html}
-            {changes_html}
-        </div>
-    </div>
-    """
+    safe_title = escape(title)
+    safe_value = escape(formatted_value)
+    safe_unit = escape(unit)
+    card_html = (
+        f'<div style="background-color: {COLOR_PALETTE["bg_card"]}; border-radius: 20px; padding: 20px; '
+        'height: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: relative; overflow: hidden; '
+        'transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;" '
+        'onmouseover="this.style.transform=\'translateY(-4px)\'; this.style.boxShadow=\'0 8px 24px rgba(0,0,0,0.2)\';" '
+        'onmouseout="this.style.transform=\'none\'; this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.1)\';">'
+        f'<div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background-color: {status_color};"></div>'
+        f'<div style="color: {COLOR_PALETTE["text_muted"]}; font-size: 0.95em; font-weight: 600; margin-bottom: 8px; margin-left: 4px;">{safe_title}</div>'
+        f'<div style="color: {COLOR_PALETTE["text_primary"]}; font-size: 2em; font-weight: 800; margin-left: 4px; line-height: 1.2;">'
+        f'{safe_value}<span style="font-size: 0.6em; color: {COLOR_PALETTE["text_muted"]}; margin-left: 4px;">{safe_unit}</span>'
+        '</div>'
+        f'<div style="margin-left: 4px;">{zscore_html}{changes_html}</div>'
+        '</div>'
+    )
     
     st.markdown(card_html, unsafe_allow_html=True)
 

@@ -14,46 +14,46 @@ from typing import Optional
 
 COLOR_PALETTE = {
     # Primary colors
-    'primary': '#3b82f6',          # Blue - 주요 액션, 링크
-    'primary_light': '#60a5fa',    # Light Blue
-    'primary_dark': '#2563eb',     # Dark Blue
+    'primary': '#60a5fa',          # Blue - 주요 액션, 링크
+    'primary_light': '#93c5fd',    # Light Blue
+    'primary_dark': '#3b82f6',     # Dark Blue
     
     # Secondary colors
-    'secondary': '#8b5cf6',        # Purple - 보조 요소
-    'secondary_light': '#a78bfa',  # Light Purple
+    'secondary': '#94a3b8',        # Slate - 보조 요소
+    'secondary_light': '#cbd5e1',  # Light Slate
     
     # Status colors
-    'success': '#10b981',          # Green - 성공, 안전, 확장 (에메랄드 그린)
-    'success_dark': '#059669',     # Dark Green
+    'success': '#34d399',          # Green - 성공, 안전, 확장
+    'success_dark': '#10b981',     # Dark Green
     'warning': '#f59e0b',          # Amber - 경고, 주의
     'warning_light': '#fbbf24',    # Light Amber
-    'danger': '#ef4444',           # Red - 위험, 오류
-    'danger_dark': '#dc2626',      # Dark Red
-    'danger_darker': '#7f1d1d',    # Very Dark Red - Stress
+    'danger': '#f87171',           # Red - 위험, 오류
+    'danger_dark': '#ef4444',      # Dark Red
+    'danger_darker': '#991b1b',    # Very Dark Red - Stress
     
     # Neutral colors
-    'neutral': '#6b7280',          # Gray - 비활성, 중립
-    'neutral_light': '#9ca3af',    # Light Gray
-    'neutral_dark': '#4b5563',     # Dark Gray
+    'neutral': '#64748b',          # Slate - 비활성, 중립
+    'neutral_light': '#94a3b8',    # Light Slate
+    'neutral_dark': '#334155',     # Dark Slate
     
-    # Background colors (Soft Dark Theme)
-    'bg_base': '#121212',          # 앱 전체 배경 (매우 부드러운 다크 그레이)
-    'bg_card': '#1e1e1e',          # 카드 배경 (살짝 입체감)
-    'bg_elevated': '#2c2c2e',      # 강조 스택 (가장 튀어나온 요소)
-    'bg_hover': '#323234',         # 호버 상태
+    # Background colors (Analytical Dark Theme)
+    'bg_base': '#0b1220',          # 앱 전체 배경
+    'bg_card': '#111827',          # 카드 배경
+    'bg_elevated': '#1f2937',      # 강조 스택
+    'bg_hover': '#172033',         # 호버 상태
     
     # Border colors (Neutral Gray, Very Subtle)
-    'border': '#2c2c2e',           # 기본 테두리
-    'border_light': '#3a3a3c',     # 밝은 테두리
+    'border': '#334155',           # 기본 테두리
+    'border_light': '#475569',     # 밝은 테두리
     
     # Text colors (Neutral)
-    'text_primary': '#f5f5f7',     # 주요 텍스트 (완전 흰색보다 눈이 편한 오프화이트)
-    'text_secondary': '#ebebf599', # 보조 텍스트 (약 60% 불투명도)
-    'text_muted': '#ebebf54d',     # 흐린 텍스트 (약 30% 불투명도)
-    'text_disabled': '#737373',    # 비활성 텍스트
+    'text_primary': '#e2e8f0',     # 주요 텍스트
+    'text_secondary': '#cbd5e1',   # 보조 텍스트
+    'text_muted': '#94a3b8',       # 흐린 텍스트
+    'text_disabled': '#64748b',    # 비활성 텍스트
     
     # Chart colors
-    'grid': '#2c2c2e',             # 차트 그리드 라인
+    'grid': '#334155',             # 차트 그리드 라인
     'chart_bg': 'rgba(0,0,0,0)',   # 투명 차트 배경
 }
 

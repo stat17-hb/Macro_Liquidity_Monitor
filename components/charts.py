@@ -14,6 +14,7 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
+import streamlit as st
 
 import sys
 import os
@@ -21,18 +22,156 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import Regime, REGIME_COLORS
 
-# Color palette for consistency - aligned with Soft UI theme
+# Color palette for consistency - aligned with the app shell
 COLORS = {
-    'primary': '#3b82f6',      # Blue
-    'secondary': '#8b5cf6',    # Purple
-    'success': '#10b981',      # Green
+    'primary': '#60a5fa',      # Blue
+    'secondary': '#38bdf8',    # Sky
+    'success': '#34d399',      # Green
     'warning': '#f59e0b',      # Amber
-    'danger': '#ef4444',       # Red
-    'neutral': '#6b7280',      # Gray
-    'bg_dark': '#1e1e1e',      # Dark background
+    'danger': '#f87171',       # Red
+    'neutral': '#94a3b8',      # Slate
+    'bg_dark': '#111827',      # Dark background
     'bg_light': '#e2e8f0',     # Light background
     'grid': 'rgba(255,255,255,0.05)', # Ultra soft grid lines
 }
+
+SERIES_COLORS = [
+    '#60a5fa',
+    '#38bdf8',
+    '#34d399',
+    '#f59e0b',
+    '#f87171',
+    '#a3e635',
+]
+
+TIMEFRAME_TO_OFFSET = {
+    '6M': pd.DateOffset(months=6),
+    '1Y': pd.DateOffset(years=1),
+    '3Y': pd.DateOffset(years=3),
+    '5Y': pd.DateOffset(years=5),
+    'Full': None,
+}
+
+HEIGHT_PRESETS = {
+    'compact': 320,
+    'default': 400,
+    'tall': 480,
+}
+
+
+def get_active_timeframe(timeframe: Optional[str] = None) -> str:
+    """Resolve the active chart timeframe."""
+    if timeframe:
+        return timeframe
+    ui_state = st.session_state.get('ui_state', {})
+    return ui_state.get('global_timeframe', 'Full')
+
+
+def filter_series_by_timeframe(
+    series: Optional[pd.Series],
+    timeframe: Optional[str] = None,
+) -> Optional[pd.Series]:
+    """Slice a series to the active timeframe."""
+    if series is None or len(series) == 0:
+        return series
+
+    active_timeframe = get_active_timeframe(timeframe)
+    offset = TIMEFRAME_TO_OFFSET.get(active_timeframe)
+    if offset is None:
+        return series
+
+    last_index = pd.to_datetime(series.index.max())
+    cutoff = last_index - offset
+    return series[series.index >= cutoff]
+
+
+def filter_dataframe_by_timeframe(
+    df: pd.DataFrame,
+    date_col: str = 'date',
+    timeframe: Optional[str] = None,
+) -> pd.DataFrame:
+    """Slice a dataframe by datetime column to the active timeframe."""
+    if df is None or df.empty or date_col not in df.columns:
+        return df
+
+    active_timeframe = get_active_timeframe(timeframe)
+    offset = TIMEFRAME_TO_OFFSET.get(active_timeframe)
+    if offset is None:
+        return df
+
+    working_df = df.copy()
+    working_df[date_col] = pd.to_datetime(working_df[date_col])
+    last_date = pd.to_datetime(working_df[date_col].max())
+    cutoff = last_date - offset
+    return working_df[working_df[date_col] >= cutoff]
+
+
+def _resolve_height(height: int, height_preset: Optional[str]) -> int:
+    if height_preset and height_preset in HEIGHT_PRESETS:
+        return HEIGHT_PRESETS[height_preset]
+    return height
+
+
+def _apply_threshold_lines(
+    fig: go.Figure,
+    threshold_lines: Optional[List[Dict[str, Union[float, str, int]]]] = None,
+) -> None:
+    for line in threshold_lines or []:
+        fig.add_hline(
+            y=float(line['value']),
+            line_dash=str(line.get('dash', 'dash')),
+            line_color=str(line.get('color', COLORS['neutral'])),
+            opacity=float(line.get('opacity', 0.55)),
+            annotation_text=line.get('label'),
+            annotation_position=str(line.get('annotation_position', 'right')),
+        )
+
+
+def _annotate_latest_points(fig: go.Figure, max_annotations: int = 3) -> None:
+    added = 0
+    for trace in fig.data:
+        if added >= max_annotations:
+            break
+        if getattr(trace, 'type', None) != 'scatter':
+            continue
+        if len(trace.x) == 0 or len(trace.y) == 0:
+            continue
+        latest_x = trace.x[-1]
+        latest_y = trace.y[-1]
+        if pd.isna(latest_y):
+            continue
+
+        if isinstance(latest_y, (int, float, np.integer, np.floating)):
+            latest_text = f"{latest_y:,.2f}"
+        else:
+            latest_text = str(latest_y)
+
+        fig.add_annotation(
+            x=latest_x,
+            y=latest_y,
+            text=f"{trace.name}: {latest_text}",
+            showarrow=False,
+            xanchor='left',
+            yanchor='middle',
+            font=dict(size=11, color=getattr(trace.line, 'color', COLORS['neutral'])),
+            bgcolor='rgba(15, 23, 42, 0.75)',
+        )
+        added += 1
+
+
+def _apply_common_layout(fig: go.Figure, title: str, height: int) -> None:
+    fig.update_layout(
+        title=dict(text=title, font=dict(size=16)),
+        height=height,
+        margin=dict(l=40, r=40, t=56, b=40),
+        hovermode='x unified',
+        template='plotly_dark',
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+        xaxis=dict(showgrid=True, gridcolor=COLORS['grid'], gridwidth=0.5),
+        yaxis=dict(showgrid=True, gridcolor=COLORS['grid'], gridwidth=0.5),
+    )
 
 
 def create_timeseries_chart(
@@ -44,6 +183,10 @@ def create_timeseries_chart(
     highlight_recent: bool = True,
     show_trend: bool = False,
     height: int = 400,
+    timeframe: Optional[str] = None,
+    height_preset: Optional[str] = None,
+    threshold_lines: Optional[List[Dict[str, Union[float, str, int]]]] = None,
+    latest_annotation: bool = False,
 ) -> go.Figure:
     """
     Create a single time series chart.
@@ -62,6 +205,11 @@ def create_timeseries_chart(
     Returns:
         Plotly Figure
     """
+    if df is None or df.empty:
+        return go.Figure()
+
+    df = filter_dataframe_by_timeframe(df, date_col=date_col, timeframe=timeframe)
+    resolved_height = _resolve_height(height, height_preset)
     fig = go.Figure()
     
     # Handle multi-indicator data
@@ -69,13 +217,13 @@ def create_timeseries_chart(
         indicators = df[indicator_col].unique()
         for i, ind in enumerate(indicators):
             ind_df = df[df[indicator_col] == ind].sort_values(date_col)
-            color = px.colors.qualitative.Set2[i % len(px.colors.qualitative.Set2)]
+            color = SERIES_COLORS[i % len(SERIES_COLORS)]
             fig.add_trace(go.Scatter(
                 x=ind_df[date_col],
                 y=ind_df[value_col],
                 name=ind,
                 mode='lines',
-                line=dict(color=color, width=2),
+                line=dict(color=color, width=2.2),
             ))
     else:
         df = df.sort_values(date_col)
@@ -84,9 +232,7 @@ def create_timeseries_chart(
             y=df[value_col],
             name=title or 'Value',
             mode='lines',
-            line=dict(color=COLORS['primary'], width=2),
-            fill='tozeroy',
-            fillcolor='rgba(59, 130, 246, 0.1)',
+            line=dict(color=COLORS['primary'], width=2.4),
         ))
     
     # Highlight recent 3 months
@@ -94,39 +240,26 @@ def create_timeseries_chart(
         recent_start = df[date_col].iloc[-63]
         fig.add_vrect(
             x0=recent_start, x1=df[date_col].iloc[-1],
-            fillcolor="rgba(59, 130, 246, 0.1)",
+            fillcolor="rgba(96, 165, 250, 0.08)",
             layer="below",
             line_width=0,
         )
-    
-    # Update layout
-    fig.update_layout(
-        title=dict(text=title, font=dict(size=16)),
-        height=height,
-        margin=dict(l=40, r=40, t=60, b=40),
-        hovermode='x unified',
-        template='plotly_dark',
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(
-            showgrid=True,
-            gridcolor=COLORS['grid'],
-            gridwidth=0.5,
-        ),
-        yaxis=dict(
-            showgrid=True,
-            gridcolor=COLORS['grid'],
-            gridwidth=0.5,
-        ),
-        legend=dict(
-            orientation='h',
-            yanchor='bottom',
-            y=1.02,
-            xanchor='right',
-            x=1,
-        ),
-    )
-    
+
+    if show_trend and len(df) >= 2:
+        trend = np.polyfit(np.arange(len(df)), df[value_col], deg=1)
+        trend_values = trend[0] * np.arange(len(df)) + trend[1]
+        fig.add_trace(go.Scatter(
+            x=df[date_col],
+            y=trend_values,
+            name='Trend',
+            mode='lines',
+            line=dict(color=COLORS['neutral'], width=1.4, dash='dot'),
+        ))
+
+    _apply_threshold_lines(fig, threshold_lines)
+    if latest_annotation:
+        _annotate_latest_points(fig, max_annotations=1 if not indicator_col else 3)
+    _apply_common_layout(fig, title, resolved_height)
     return fig
 
 
@@ -136,6 +269,10 @@ def create_multi_line_chart(
     normalize: bool = False,
     height: int = 400,
     secondary_y: Optional[List[str]] = None,
+    timeframe: Optional[str] = None,
+    height_preset: Optional[str] = None,
+    threshold_lines: Optional[List[Dict[str, Union[float, str, int]]]] = None,
+    latest_annotation: bool = False,
 ) -> go.Figure:
     """
     Create a multi-line chart with optional secondary y-axis.
@@ -153,19 +290,22 @@ def create_multi_line_chart(
     """
     secondary_y = secondary_y or []
     has_secondary = len(secondary_y) > 0
+    resolved_height = _resolve_height(height, height_preset)
     
     if has_secondary:
         fig = make_subplots(specs=[[{"secondary_y": True}]])
     else:
         fig = go.Figure()
     
-    colors = px.colors.qualitative.Set2
-    
+    colors = SERIES_COLORS
+
     for i, (name, series) in enumerate(data.items()):
         if series is None or len(series) == 0:
             continue
             
-        values = series.copy()
+        values = filter_series_by_timeframe(series.copy(), timeframe=timeframe)
+        if values is None or len(values) == 0:
+            continue
         if normalize and len(values) > 0:
             values = (values / values.iloc[0]) * 100
         
@@ -173,11 +313,11 @@ def create_multi_line_chart(
         color = colors[i % len(colors)]
         
         trace = go.Scatter(
-            x=series.index if hasattr(series, 'index') else range(len(series)),
+            x=values.index if hasattr(values, 'index') else range(len(values)),
             y=values,
             name=name,
             mode='lines',
-            line=dict(color=color, width=2, dash='dash' if is_secondary else 'solid'),
+            line=dict(color=color, width=2.2, dash='dash' if is_secondary else 'solid'),
         )
         
         if has_secondary:
@@ -185,17 +325,10 @@ def create_multi_line_chart(
         else:
             fig.add_trace(trace)
     
-    fig.update_layout(
-        title=dict(text=title, font=dict(size=16)),
-        height=height,
-        margin=dict(l=40, r=40, t=60, b=40),
-        hovermode='x unified',
-        template='plotly_dark',
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
-    )
-    
+    _apply_threshold_lines(fig, threshold_lines)
+    if latest_annotation:
+        _annotate_latest_points(fig)
+    _apply_common_layout(fig, title, resolved_height)
     return fig
 
 
@@ -206,6 +339,8 @@ def create_zscore_heatmap(
     zscore_col: str = 'zscore',
     title: str = 'Z-Score Heatmap',
     height: int = 400,
+    timeframe: Optional[str] = None,
+    height_preset: Optional[str] = None,
 ) -> go.Figure:
     """
     Create a z-score heatmap (indicators x time).
@@ -222,6 +357,12 @@ def create_zscore_heatmap(
     Returns:
         Plotly Figure
     """
+    if df is None or df.empty:
+        return go.Figure()
+
+    df = filter_dataframe_by_timeframe(df, date_col=date_col, timeframe=timeframe)
+    resolved_height = _resolve_height(height, height_preset)
+
     # Pivot to wide format
     pivot = df.pivot(index=indicator_col, columns=date_col, values=zscore_col)
     
@@ -252,7 +393,7 @@ def create_zscore_heatmap(
     
     fig.update_layout(
         title=dict(text=title, font=dict(size=16)),
-        height=height,
+        height=resolved_height,
         margin=dict(l=120, r=40, t=60, b=60),
         template='plotly_dark',
         paper_bgcolor='rgba(0,0,0,0)',
@@ -269,6 +410,8 @@ def create_valuation_scatter(
     earnings_change: pd.Series,
     title: str = '밸류에이션 vs 이익 변화 (신념 과열 탐지)',
     height: int = 400,
+    timeframe: Optional[str] = None,
+    height_preset: Optional[str] = None,
 ) -> go.Figure:
     """
     Create valuation vs earnings change scatter plot.
@@ -283,10 +426,19 @@ def create_valuation_scatter(
     Returns:
         Plotly Figure
     """
+    resolved_height = _resolve_height(height, height_preset)
+
     # Align dates
     common_idx = valuation_change.index.intersection(earnings_change.index)
     val = valuation_change.loc[common_idx]
     earn = earnings_change.loc[common_idx]
+    val = filter_series_by_timeframe(val, timeframe=timeframe)
+    earn = filter_series_by_timeframe(earn, timeframe=timeframe)
+    common_idx = val.index.intersection(earn.index)
+    val = val.loc[common_idx]
+    earn = earn.loc[common_idx]
+    if len(common_idx) == 0:
+        return go.Figure()
     
     # Determine color based on gap (valuation - earnings)
     gap = val - earn
@@ -342,7 +494,7 @@ def create_valuation_scatter(
     
     fig.update_layout(
         title=dict(text=title, font=dict(size=16)),
-        height=height,
+        height=resolved_height,
         margin=dict(l=60, r=40, t=60, b=60),
         template='plotly_dark',
         paper_bgcolor='rgba(0,0,0,0)',
@@ -365,6 +517,8 @@ def create_valuation_scatter(
 def create_regime_history_chart(
     regime_history_df: pd.DataFrame,
     height: int = 350,
+    timeframe: Optional[str] = None,
+    height_preset: Optional[str] = None,
 ) -> go.Figure:
     """
     Create a timeline chart showing regime history with confidence overlay.
@@ -381,6 +535,17 @@ def create_regime_history_chart(
     """
     if regime_history_df is None or regime_history_df.empty:
         return go.Figure()
+
+    resolved_height = _resolve_height(height, height_preset)
+    regime_history_df = regime_history_df.copy()
+    regime_history_df.index = pd.to_datetime(regime_history_df.index)
+    active_timeframe = get_active_timeframe(timeframe)
+    offset = TIMEFRAME_TO_OFFSET.get(active_timeframe)
+    if offset is not None:
+        cutoff = regime_history_df.index.max() - offset
+        regime_history_df = regime_history_df[regime_history_df.index >= cutoff]
+        if regime_history_df.empty:
+            return go.Figure()
 
     # Map regime strings to colors
     regime_color_map = {
@@ -453,7 +618,7 @@ def create_regime_history_chart(
 
     fig.update_layout(
         title=dict(text='레짐 이력 (최근 2년)', font=dict(size=14, color='#f5f5f7')),
-        height=height,
+        height=resolved_height,
         margin=dict(l=40, r=60, t=50, b=40),
         hovermode='x unified',
         template='plotly_dark',

@@ -84,6 +84,106 @@ def generate_daily_summary(
     return ', '.join(parts) + '.'
 
 
+def generate_what_changed(
+    regime: Regime,
+    metrics: Dict[str, Optional[float]],
+    alerts: Optional[List] = None,
+) -> List[str]:
+    """
+    Generate short command-center bullets for what changed recently.
+    """
+    lines: List[str] = []
+
+    credit_growth = metrics.get('credit_growth_3m')
+    spread_zscore = metrics.get('spread_zscore')
+    vix_percentile = metrics.get('vix_percentile')
+    equity_1m = metrics.get('equity_1m')
+    qt_pace = metrics.get('qt_pace')
+
+    if credit_growth is not None:
+        if credit_growth > 5:
+            lines.append(f"민간 신용이 연율 {credit_growth:.1f}%로 확장 중입니다.")
+        elif credit_growth < 0:
+            lines.append(f"민간 신용이 연율 {credit_growth:.1f}%로 수축 전환했습니다.")
+
+    if spread_zscore is not None:
+        if spread_zscore > 1:
+            lines.append(f"스프레드가 역사 평균 대비 {spread_zscore:.1f}σ 넓어졌습니다.")
+        elif spread_zscore < -1:
+            lines.append(f"스프레드가 역사 저점권(z={spread_zscore:.1f})으로 압축됐습니다.")
+
+    if vix_percentile is not None:
+        if vix_percentile > 80:
+            lines.append(f"변동성이 상위 {vix_percentile:.0f}%ile로 올라왔습니다.")
+        elif vix_percentile < 20:
+            lines.append(f"변동성이 하위 {vix_percentile:.0f}%ile로 낮아졌습니다.")
+
+    if equity_1m is not None and equity_1m <= -5:
+        lines.append(f"S&P 500이 최근 1개월 {equity_1m:.1f}% 하락했습니다.")
+
+    if qt_pace is not None:
+        if qt_pace < -0.5:
+            lines.append(f"Fed 총자산이 최근 1개월 기준 {qt_pace:.2f}% 감소했습니다.")
+        elif qt_pace > 0.2:
+            lines.append(f"Fed 총자산이 최근 1개월 기준 {qt_pace:.2f}% 증가했습니다.")
+
+    if alerts:
+        titles = ', '.join(alert.title for alert in alerts[:2])
+        lines.append(f"활성 경고는 {titles} 중심입니다.")
+
+    if not lines:
+        lines.append(f"{regime.value} 레짐 안에서 핵심 변화는 아직 제한적입니다.")
+
+    return lines[:3]
+
+
+def generate_watch_next(
+    regime: Regime,
+    metrics: Dict[str, Optional[float]],
+    alerts: Optional[List] = None,
+) -> List[str]:
+    """
+    Generate short command-center bullets for what matters next.
+    """
+    lines: List[str] = []
+
+    spread_zscore = metrics.get('spread_zscore')
+    vix_percentile = metrics.get('vix_percentile')
+    pe_zscore = metrics.get('pe_zscore')
+    eps_growth = metrics.get('eps_growth')
+    reserve_regime = metrics.get('reserve_regime')
+    money_market_stress = metrics.get('money_market_stress')
+
+    if regime == Regime.EXPANSION:
+        lines.append("신용 확장이 유지되는지와 스프레드 재확대 여부를 함께 확인해야 합니다.")
+    elif regime == Regime.LATE_CYCLE:
+        lines.append("밸류에이션과 이익 개선의 괴리가 더 벌어지는지 확인해야 합니다.")
+    elif regime == Regime.CONTRACTION:
+        lines.append("신용 성장 재가속 여부보다 스프레드와 변동성의 추가 악화를 우선 봐야 합니다.")
+    else:
+        lines.append("담보 훼손의 2차 충격이 자금시장으로 번지는지 우선 확인해야 합니다.")
+
+    if pe_zscore is not None and eps_growth is not None and pe_zscore > 1 and eps_growth < 5:
+        lines.append("이익 추정 상향 없이 밸류에이션만 확장되면 되돌림 리스크가 커집니다.")
+
+    if spread_zscore is not None and spread_zscore > 1:
+        lines.append("크레딧 스프레드 확대가 지속되면 대차대조표 수축 경로가 강화됩니다.")
+
+    if vix_percentile is not None and vix_percentile > 80:
+        lines.append("변동성 급등이 담보 헤어컷 확대로 이어지는지 확인이 필요합니다.")
+
+    if reserve_regime is not None:
+        lines.append(f"준비금 레짐은 현재 {reserve_regime} 상태로 해석됩니다.")
+
+    if money_market_stress is not None and money_market_stress >= 60:
+        lines.append("머니마켓 스트레스가 높아 QT 일시중단 압력이 커질 수 있습니다.")
+
+    if alerts and not lines:
+        lines.append("활성 경고의 추가 확인 지표를 우선적으로 점검해야 합니다.")
+
+    return lines[:3]
+
+
 def generate_belief_analysis(
     regime: Regime,
     credit_growth: Optional[float] = None,
