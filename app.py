@@ -8,18 +8,16 @@ Liquidity Monitoring Dashboard - Main Entry Point
 3) 목표 = 취약 지점 탐지 (가격 설명 X)
 """
 import streamlit as st
-from datetime import datetime, timedelta
-import pandas as pd
 import sys
 import os
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config import PAGE_CONFIG, Regime, config
-from loaders import SampleDataLoader, FREDLoader, YFinanceLoader, CSVLoader
+from config import PAGE_CONFIG, config
+from data_pipeline import build_dashboard_dataset, get_regime_inputs
+from loaders import CSVLoader
 from indicators import RegimeClassifier
-from indicators.alerts import AlertEngine
 
 
 # ============================================================================
@@ -38,133 +36,8 @@ from components.styles import get_global_css
 st.markdown(get_global_css(), unsafe_allow_html=True)
 
 
-
-# ============================================================================
-# DATA LOADING (Cached)
-# ============================================================================
-
-@st.cache_data(ttl=3600 * 6)  # Cache for 6 hours
-def load_all_data(use_sample: bool = True, load_fed_balance_sheet: bool = False):
-    """Load all data from sources."""
-    if use_sample:
-        loader = SampleDataLoader()
-        return loader.load_all()
-    else:
-        # Try to load from real sources
-        data_frames = []
-        load_status = []
-
-        fred = FREDLoader(api_key=config.fred_api_key)
-        if fred.is_ready():
-            try:
-                # Always load minimum set (Fed BS + all macro indicators for analysis)
-                fred_data = fred.load_all_minimum_set()
-
-                # If Fed BS checkbox is on, additionally load Discount Window (WLDWSL)
-                if load_fed_balance_sheet and not fred_data.empty:
-                    try:
-                        dw_data = fred.load('WLDWSL')
-                        if not dw_data.empty:
-                            fred_data = pd.concat([fred_data, dw_data], ignore_index=True)
-                    except Exception:
-                        pass  # Discount Window is optional
-
-                if not fred_data.empty:
-                    data_frames.append(fred_data)
-                    indicator_count = len(fred_data['indicator'].unique())
-                    load_status.append(f"FRED: {indicator_count}개 지표 로딩됨")
-            except Exception as e:
-                load_status.append(f"FRED: 로딩 실패 - {e}")
-        else:
-            load_status.append(f"FRED: {fred.get_status_message()}")
-
-        yf = YFinanceLoader()
-        if yf.is_available():
-            try:
-                yf_data = yf.load_all_minimum_set()
-                if not yf_data.empty:
-                    data_frames.append(yf_data)
-                    indicator_count = len(yf_data['indicator'].unique())
-                    load_status.append(f"yfinance: {indicator_count}개 지표 로딩됨")
-            except Exception as e:
-                load_status.append(f"yfinance: 로딩 실패 - {e}")
-
-        # Show load status
-        if load_status:
-            for status in load_status:
-                if "실패" in status or "필요" in status or "미설치" in status:
-                    st.warning(status)
-                else:
-                    st.info(status)
-
-        if data_frames:
-            return pd.concat(data_frames, ignore_index=True)
-        else:
-            st.warning("실시간 데이터를 가져올 수 없어 샘플 데이터를 사용합니다.")
-            return SampleDataLoader().load_all()
-
-
-def prepare_data_dict(df: pd.DataFrame) -> dict:
-    """Convert long-format DataFrame to dict of series."""
-    data_dict = {}
-
-    for indicator in df['indicator'].unique():
-        ind_df = df[df['indicator'] == indicator].copy()
-        ind_df = ind_df.sort_values('date')
-        series = pd.Series(
-            ind_df['value'].values,
-            index=pd.DatetimeIndex(ind_df['date']),
-            name=indicator
-        )
-
-        # Map to standard names
-        name_mapping = {
-            'Fed Total Assets': 'fed_assets',
-            'Reserve Balances': 'reserve_balances',
-            'Reverse Repo': 'reverse_repo',
-            'TGA Balance': 'tga_balance',
-            'Fed Lending': 'fed_lending',
-            'Bank Credit': 'bank_credit',
-            'M2': 'm2',
-            'HY Spread': 'hy_spread',
-            'IG Spread': 'ig_spread',
-            'VIX': 'vix',
-            'S&P 500': 'sp500',
-            'Real Yield 10Y': 'real_yield',
-            'Breakeven 10Y': 'breakeven',
-            'Forward EPS': 'forward_eps',
-            'PE Ratio': 'pe_ratio',
-            # YFinance ETF proxies
-            'HY ETF': 'hy_etf',
-            'IG ETF': 'ig_etf',
-            'TLT': 'tlt',
-            '10Y Yield': 'treasury_10y',
-        }
-
-        key = name_mapping.get(indicator, indicator.lower().replace(' ', '_'))
-        data_dict[key] = series
-
-    # Add derived data
-    if 'bank_credit' in data_dict:
-        data_dict['credit'] = data_dict['bank_credit']
-        data_dict['credit_growth'] = data_dict['bank_credit']
-
-    if 'hy_spread' in data_dict:
-        data_dict['spread'] = data_dict['hy_spread']
-    elif 'hy_etf' in data_dict:
-        # Use HY ETF as spread proxy (inverted - lower price = wider spread)
-        data_dict['spread'] = data_dict['hy_etf']
-
-    if 'sp500' in data_dict:
-        data_dict['equity'] = data_dict['sp500']
-
-    if 'pe_ratio' in data_dict:
-        data_dict['valuation'] = data_dict['pe_ratio']
-
-    if 'forward_eps' in data_dict:
-        data_dict['earnings'] = data_dict['forward_eps']
-
-    return data_dict
+if 'custom_indicator_frames' not in st.session_state:
+    st.session_state['custom_indicator_frames'] = []
 
 
 # ============================================================================
@@ -185,6 +58,7 @@ with st.sidebar:
                                          help="Reserve Balances, Reverse Repo, TGA, Fed Lending 포함")
 
     if st.button("🔄 데이터 새로고침"):
+        st.session_state['custom_indicator_frames'] = []
         st.cache_data.clear()
         st.rerun()
 
@@ -203,10 +77,44 @@ with st.sidebar:
         if st.button("데이터 추가"):
             try:
                 csv_loader = CSVLoader()
-                custom_df = csv_loader.load_from_upload(uploaded_file, indicator_name)
-                st.success(f"{len(custom_df)} 행 로드됨")
+                indicator_name = indicator_name.strip() or "Custom"
+                upload_df = csv_loader.read_upload_to_dataframe(uploaded_file)
+                validation = csv_loader.validate_upload(upload_df)
+
+                if not validation['valid']:
+                    for error in validation['errors']:
+                        st.error(f"업로드 검증 실패: {error}")
+                else:
+                    if validation['detected_date_col'] and validation['detected_value_col']:
+                        st.info(
+                            "감지된 컬럼: "
+                            f"date=`{validation['detected_date_col']}`, "
+                            f"value=`{validation['detected_value_col']}`"
+                        )
+                    for warning in validation['warnings']:
+                        st.warning(warning)
+
+                    custom_df = csv_loader.load_from_dataframe(upload_df, indicator_name)
+                    existing_frames = [
+                        frame for frame in st.session_state['custom_indicator_frames']
+                        if frame.empty or frame['indicator'].iloc[0] != indicator_name
+                    ]
+                    existing_frames.append(custom_df)
+                    st.session_state['custom_indicator_frames'] = existing_frames
+                    st.success(f"{len(custom_df)} 행 로드됨")
+                    st.caption(
+                        f"사용자 지표 {len(st.session_state['custom_indicator_frames'])}개가 현재 세션에 포함됩니다."
+                    )
             except Exception as e:
                 st.error(f"로드 실패: {e}")
+
+    if st.session_state['custom_indicator_frames']:
+        custom_names = [
+            frame['indicator'].iloc[0]
+            for frame in st.session_state['custom_indicator_frames']
+            if not frame.empty
+        ]
+        st.caption(f"추가된 사용자 지표: {', '.join(custom_names)}")
     
     st.markdown("---")
     
@@ -219,19 +127,24 @@ with st.sidebar:
 # ============================================================================
 
 # Load data
-df = load_all_data(use_sample=use_sample, load_fed_balance_sheet=load_fed_balance_sheet)
-data_dict = prepare_data_dict(df)
+df, data_dict, load_status = build_dashboard_dataset(
+    use_sample=use_sample,
+    load_fed_balance_sheet=load_fed_balance_sheet,
+    fred_api_key=config.fred_api_key,
+    custom_frames=st.session_state['custom_indicator_frames'],
+)
+
+for status in load_status:
+    if "실패" in status or "필요" in status or "미설치" in status:
+        st.warning(status)
+    else:
+        st.info(status)
 
 # Get regime classification
 classifier = RegimeClassifier()
 
 # Prepare data for classification
-regime_data = {
-    'credit_growth': data_dict.get('credit_growth'),
-    'spread': data_dict.get('spread'),
-    'vix': data_dict.get('vix'),
-    'equity': data_dict.get('equity'),
-}
+regime_data = get_regime_inputs(data_dict)
 
 regime_result = classifier.classify(regime_data)
 

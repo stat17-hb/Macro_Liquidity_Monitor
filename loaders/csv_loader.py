@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 import pandas as pd
 import io
+from pathlib import Path
 
 from .base import DataLoader, DataSchema
 
@@ -67,13 +68,23 @@ class CSVLoader(DataLoader):
         Returns:
             DataFrame with columns: date, value, indicator
         """
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, encoding='utf-8')
         
         if indicator_name is None:
             # Derive from filename
-            indicator_name = file_path.split('/')[-1].split('\\')[-1].replace('.csv', '')
+            indicator_name = Path(file_path).stem
         
         return self._process_dataframe(df, indicator_name, start_date, end_date)
+
+    def read_upload_to_dataframe(self, uploaded_file: Any) -> pd.DataFrame:
+        """Read a Streamlit upload into a raw DataFrame using UTF-8."""
+        if hasattr(uploaded_file, 'getvalue'):
+            content = uploaded_file.getvalue()
+        else:
+            content = uploaded_file.read()
+
+        decoded = content.decode('utf-8')
+        return pd.read_csv(io.StringIO(decoded))
     
     def load_from_upload(
         self,
@@ -94,9 +105,7 @@ class CSVLoader(DataLoader):
         Returns:
             DataFrame with columns: date, value, indicator
         """
-        # Read file content
-        content = uploaded_file.read()
-        df = pd.read_csv(io.StringIO(content.decode('utf-8')))
+        df = self.read_upload_to_dataframe(uploaded_file)
         
         return self._process_dataframe(df, indicator_name, start_date, end_date)
     
@@ -223,6 +232,11 @@ class CSVLoader(DataLoader):
             'column_count': len(df.columns),
             'columns': df.columns.tolist(),
         }
+
+        if df.empty:
+            result['valid'] = False
+            result['errors'].append("CSV 파일에 데이터 행이 없습니다.")
+            return result
         
         try:
             result['detected_date_col'] = self._detect_date_column(df)

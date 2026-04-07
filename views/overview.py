@@ -32,6 +32,59 @@ from indicators.transforms import (
 )
 
 
+def build_overview_metrics(data_dict):
+    """Compute the full metric set used across overview reports and cards."""
+    metrics = {
+        'credit_growth_3m': None,
+        'spread_zscore': None,
+        'vix_percentile': None,
+        'equity_1m': None,
+        'pe_zscore': None,
+        'eps_growth': None,
+        'real_yield': None,
+        'breakeven': None,
+    }
+
+    if 'bank_credit' in data_dict:
+        credit = data_dict['bank_credit']
+        credit_3m = calc_3m_annualized(credit, periods_3m=13)
+        metrics['credit_growth_3m'] = credit_3m.iloc[-1] if len(credit_3m) > 0 else None
+
+    if 'hy_spread' in data_dict:
+        spread = data_dict['hy_spread']
+        spread_z = calc_zscore(spread, window_years=3, periods_per_year=52)
+        metrics['spread_zscore'] = spread_z.iloc[-1] if len(spread_z) > 0 else None
+
+    if 'vix' in data_dict:
+        vix = data_dict['vix']
+        vix_pct = calc_percentile(vix, window_years=3, periods_per_year=252)
+        metrics['vix_percentile'] = vix_pct.iloc[-1] if len(vix_pct) > 0 else None
+
+    if 'sp500' in data_dict:
+        equity = data_dict['sp500']
+        equity_1m = calc_1m_change(equity)
+        metrics['equity_1m'] = equity_1m.iloc[-1] if len(equity_1m) > 0 else None
+
+    if 'pe_ratio' in data_dict:
+        pe = data_dict['pe_ratio']
+        pe_zscore = calc_zscore(pe, window_years=3, periods_per_year=52)
+        metrics['pe_zscore'] = pe_zscore.iloc[-1] if len(pe_zscore) > 0 else None
+
+    if 'forward_eps' in data_dict:
+        eps = data_dict['forward_eps']
+        eps_growth = calc_1m_change(eps)
+        latest_eps_growth = eps_growth.iloc[-1] if len(eps_growth) > 0 else None
+        metrics['eps_growth'] = latest_eps_growth * 12 if latest_eps_growth is not None else None
+
+    if 'real_yield' in data_dict and len(data_dict['real_yield']) > 0:
+        metrics['real_yield'] = data_dict['real_yield'].iloc[-1]
+
+    if 'breakeven' in data_dict and len(data_dict['breakeven']) > 0:
+        metrics['breakeven'] = data_dict['breakeven'].iloc[-1]
+
+    return metrics
+
+
 
 
 
@@ -41,29 +94,7 @@ def render_overview(data_dict, regime_result=None):
         st.warning('⚠️ 데이터가 없습니다.')
         return
         
-    # Extract metrics for summary
-    metrics = {}
-    
-    if 'bank_credit' in data_dict:
-        credit = data_dict['bank_credit']
-        from indicators.transforms import calc_3m_annualized, calc_zscore, calc_percentile, calc_1m_change
-        credit_3m = calc_3m_annualized(credit, periods_3m=13)  # Weekly
-        metrics['credit_growth_3m'] = credit_3m.iloc[-1] if len(credit_3m) > 0 else None
-    
-    if 'hy_spread' in data_dict:
-        spread = data_dict['hy_spread']
-        spread_z = calc_zscore(spread, window_years=3, periods_per_year=52)
-        metrics['spread_zscore'] = spread_z.iloc[-1] if len(spread_z) > 0 else None
-    
-    if 'vix' in data_dict:
-        vix = data_dict['vix']
-        vix_pct = calc_percentile(vix, window_years=3, periods_per_year=252)
-        metrics['vix_percentile'] = vix_pct.iloc[-1] if len(vix_pct) > 0 else None
-    
-    if 'sp500' in data_dict:
-        equity = data_dict['sp500']
-        equity_1m = calc_1m_change(equity)
-        metrics['equity_1m'] = equity_1m.iloc[-1] if len(equity_1m) > 0 else None
+    metrics = build_overview_metrics(data_dict)
         
     # ============================================================================
     # KEY METRICS CARDS (6개 핵심 카드)
@@ -320,33 +351,14 @@ def render_overview(data_dict, regime_result=None):
     st.markdown("### 🧠 신념 분석")
     st.markdown("*현재 대차대조표를 확장시키는 신념은 무엇인가?*")
     
-    # Get additional metrics
-    pe_zscore = None
-    if 'pe_ratio' in data_dict:
-        pe = data_dict['pe_ratio']
-        pe_zscore = calc_zscore(pe, window_years=3, periods_per_year=52).iloc[-1] if len(pe) > 156 else None
-    
-    eps_growth = None
-    if 'forward_eps' in data_dict:
-        eps = data_dict['forward_eps']
-        eps_growth = calc_1m_change(eps).iloc[-1] * 12 if len(eps) > 4 else None  # Annualized
-    
-    real_yield = metrics.get('real_yield')
-    if 'real_yield' in data_dict:
-        real_yield = data_dict['real_yield'].iloc[-1] if len(data_dict['real_yield']) > 0 else None
-    
-    breakeven = None
-    if 'breakeven' in data_dict:
-        breakeven = data_dict['breakeven'].iloc[-1] if len(data_dict['breakeven']) > 0 else None
-    
     # Generate analysis
     analysis = generate_belief_analysis(
         regime=regime_result.primary_regime,
         credit_growth=metrics.get('credit_growth_3m'),
-        real_yield=real_yield,
-        breakeven=breakeven,
-        pe_zscore=pe_zscore,
-        eps_growth=eps_growth,
+        real_yield=metrics.get('real_yield'),
+        breakeven=metrics.get('breakeven'),
+        pe_zscore=metrics.get('pe_zscore'),
+        eps_growth=metrics.get('eps_growth'),
     )
     
     render_numbered_list(

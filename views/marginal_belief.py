@@ -30,22 +30,14 @@ from indicators.transforms import (
 )
 from indicators.alerts import check_belief_overheating, AlertLevel
 from components.styles import render_page_header, render_numbered_list, COLOR_PALETTE
-
-
-
-
-
-
-render_page_header(
-    icon="🧠",
-    title="Marginal Belief",
-    subtitle="한계 투자자의 신념과 리스크 프리미엄 모니터링",
-    philosophy="자산 가격은 **돈의 양**이 아니라 **한계 투자자(marginal buyer)의 신념**(기대수익, 위험 프리미엄)에서 움직입니다.",
-)
-
-# Get data
-
 def render_marginal_belief(data_dict, regime_result=None):
+    render_page_header(
+        icon="🧠",
+        title="Marginal Belief",
+        subtitle="한계 투자자의 신념과 리스크 프리미엄 모니터링",
+        philosophy="자산 가격은 **돈의 양**이 아니라 **한계 투자자(marginal buyer)의 신념**(기대수익, 위험 프리미엄)에서 움직입니다.",
+    )
+
     # Get data from args instead of session state
     if not data_dict:
         st.warning('⚠️ 데이터가 없습니다.')

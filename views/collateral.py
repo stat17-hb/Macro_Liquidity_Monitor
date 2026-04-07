@@ -24,22 +24,14 @@ from indicators.transforms import (
 )
 from indicators.alerts import check_collateral_stress, AlertLevel
 from components.styles import render_page_header
-
-
-
-
-
-
-render_page_header(
-    icon="💎",
-    title="Collateral & Haircuts",
-    subtitle="담보가치 환경과 담보 스트레스 모니터링",
-    philosophy="**담보가치 상승 → 추가 신용창출 촉진 → 자산가격 상승 → 담보가치 재상승**의 선순환 / **담보가치 하락 → 마진콜 → 강제청산 → 가격 하락 → 담보가치 재하락**의 악순환",
-)
-
-# Get data
-
 def render_collateral(data_dict, regime_result=None):
+    render_page_header(
+        icon="💎",
+        title="Collateral & Haircuts",
+        subtitle="담보가치 환경과 담보 스트레스 모니터링",
+        philosophy="**담보가치 상승 → 추가 신용창출 촉진 → 자산가격 상승 → 담보가치 재상승**의 선순환 / **담보가치 하락 → 마진콜 → 강제청산 → 가격 하락 → 담보가치 재하락**의 악순환",
+    )
+
     # Get data from args instead of session state
     if not data_dict:
         st.warning('⚠️ 데이터가 없습니다.')

@@ -12,19 +12,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from components.charts import create_timeseries_chart, create_multi_line_chart
 from indicators.transforms import calc_zscore, calc_3m_annualized, calc_yoy
 from components.styles import render_page_header, render_score_display
-
-
-
-
-
-render_page_header(
-    icon="⚡",
-    title="Leverage & Marginal Buyer",
-    subtitle="레버리지 축적과 한계 투자자 분석",
-)
-
-
 def render_leverage(data_dict, regime_result=None):
+    render_page_header(
+        icon="⚡",
+        title="Leverage & Marginal Buyer",
+        subtitle="레버리지 축적과 한계 투자자 분석",
+    )
+
     # Get data from args instead of session state
     if not data_dict:
         st.warning('⚠️ 데이터가 없습니다.')

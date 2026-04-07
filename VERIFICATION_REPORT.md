@@ -25,7 +25,7 @@ Defined Indicators:
 - `RRPONTSYD` - Reverse Repo Agreements (stress signal)
 - `WTREGEN` - Treasury General Account (fiscal modifier)
 - `WLCFLPCL` - Fed Lending Facilities (distress gauge)
-- `WLDWSL` - Discount Window Lending (bank stress)
+- `H41RESPPALDNNWW` - Fed Lending Net (bank stress)
 
 ### 3. FRED Loader - New Loading Capability
 **Location:** `loaders/fred_loader.py` (lines 182-208)

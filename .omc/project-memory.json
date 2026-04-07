@@ -1,0 +1,138 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1775564934174,
+  "projectRoot": "c:\\Users\\k1190\\OneDrive\\01.investment\\Macro_Liquidity_Monitor",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "requirements.txt"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "pip",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "components",
+      "tests"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "components": {
+      "path": "components",
+      "purpose": "UI components",
+      "fileCount": 5,
+      "lastAccessed": 1775564934044,
+      "keyFiles": [
+        "cards.py",
+        "charts.py",
+        "reports.py",
+        "styles.py",
+        "__init__.py"
+      ]
+    },
+    "indicators": {
+      "path": "indicators",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1775564934045,
+      "keyFiles": [
+        "alerts.py",
+        "derived_metrics.py",
+        "regime.py",
+        "transforms.py",
+        "__init__.py"
+      ]
+    },
+    "knowledge_base": {
+      "path": "knowledge_base",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1775564934046,
+      "keyFiles": [
+        "유동성, 그것이 궁금했다 - 연준은 언제 QT를 중단할까 (2024년 7월 24일).md",
+        "유동성, 그것이 궁금했다! - 연준이 금리를 내려도 유동성이 줄어들 수 있는 이유 (2024년 7월 5일).md",
+        "유동성은 ‘넘치는 물’이 아니라, 확장되고 수축되는 대차대조표다.md",
+        "중앙은행의 통화정책 上 초심자를 위한 해설 84.md",
+        "중앙은행의 통화정책 下 초심자를 위한 해설 85.md"
+      ]
+    },
+    "loaders": {
+      "path": "loaders",
+      "purpose": null,
+      "fileCount": 7,
+      "lastAccessed": 1775564934047,
+      "keyFiles": [
+        "base.py",
+        "csv_loader.py",
+        "fred_loader.py",
+        "rate_limiter.py",
+        "sample_data.py"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 5,
+      "lastAccessed": 1775564934048,
+      "keyFiles": [
+        "test_fred_loader.py",
+        "test_rate_limiter.py",
+        "test_regime.py",
+        "test_transforms.py",
+        "__init__.py"
+      ]
+    },
+    "views": {
+      "path": "views",
+      "purpose": "View templates",
+      "fileCount": 7,
+      "lastAccessed": 1775564934048,
+      "keyFiles": [
+        "alerts.py",
+        "balance_sheet.py",
+        "collateral.py",
+        "leverage.py",
+        "marginal_belief.py"
+      ]
+    },
+    "__pycache__": {
+      "path": "__pycache__",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1775564934049,
+      "keyFiles": [
+        "app.cpython-313.pyc",
+        "config.cpython-313.pyc"
+      ]
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}

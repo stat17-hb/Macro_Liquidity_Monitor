@@ -18,19 +18,13 @@ from config import Regime, AlertLevel, REGIME_DESCRIPTIONS
 from components.cards import render_alert_card
 from indicators.alerts import AlertEngine, check_belief_overheating, check_collateral_stress, check_balance_sheet_contraction
 from components.styles import render_page_header
-
-
-
-
-
-render_page_header(
-    icon="🚨",
-    title="Alerts & Playbook",
-    subtitle="룰 기반 알림과 대응 가이드",
-)
-
-
 def render_alerts(data_dict, regime_result=None):
+    render_page_header(
+        icon="🚨",
+        title="Alerts & Playbook",
+        subtitle="룰 기반 알림과 대응 가이드",
+    )
+
     # Get data from args instead of session state
     if not data_dict:
         st.warning('⚠️ 데이터가 없습니다.')

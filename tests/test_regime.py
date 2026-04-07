@@ -8,7 +8,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import Regime
-from indicators.regime import RegimeClassifier, calculate_regime_scores
+from indicators.regime import RegimeClassifier, RegimeScore, calculate_regime_scores
 
 @pytest.fixture
 def expansion_data():
@@ -46,6 +46,31 @@ def test_regime_scores():
     scores = calculate_regime_scores(data)
     assert 0 <= scores.expansion <= 100
     assert 0 <= scores.stress <= 100
+
+
+def test_confidence_is_high_when_top_score_is_dominant():
+    scores = RegimeScore(expansion=70.0, late_cycle=10.0, contraction=0.0, stress=0.0)
+
+    confidence = RegimeClassifier._calculate_confidence(scores)
+
+    assert confidence >= 0.7
+
+
+def test_confidence_is_low_when_top_two_scores_are_close():
+    scores = RegimeScore(expansion=70.0, late_cycle=58.0, contraction=0.0, stress=0.0)
+
+    confidence = RegimeClassifier._calculate_confidence(scores)
+
+    assert confidence < 0.7
+
+
+def test_classify_history_uses_confidence_ratio(expansion_data):
+    classifier = RegimeClassifier()
+
+    history = classifier.classify_history(expansion_data, lookback_years=1)
+
+    assert not history.empty
+    assert history['confidence'].between(0.7, 1.0).all()
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

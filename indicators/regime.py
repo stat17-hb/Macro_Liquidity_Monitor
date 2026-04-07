@@ -126,9 +126,7 @@ class RegimeClassifier:
         # Determine primary regime
         primary = scores.get_primary_regime()
         
-        # Calculate confidence (gap between top 2 scores)
-        sorted_scores = sorted(scores.to_dict().values(), reverse=True)
-        confidence = (sorted_scores[0] - sorted_scores[1]) / 100 if len(sorted_scores) >= 2 else 1.0
+        confidence = self._calculate_confidence(scores)
         
         # Check data quality
         warning = self._check_data_quality(data)
@@ -194,12 +192,7 @@ class RegimeClassifier:
                 metrics = self._extract_metrics(sliced, as_of_date=None)
                 scores = self._calculate_scores(metrics)
                 primary = scores.get_primary_regime()
-                sorted_scores = sorted(scores.to_dict().values(), reverse=True)
-                confidence = (
-                    (sorted_scores[0] - sorted_scores[1]) / 100
-                    if len(sorted_scores) >= 2
-                    else 1.0
-                )
+                confidence = self._calculate_confidence(scores)
                 records.append({
                     'date': date,
                     'regime': primary.value,
@@ -217,6 +210,20 @@ class RegimeClassifier:
 
         df = pd.DataFrame(records).set_index('date')
         return df
+
+    @staticmethod
+    def _calculate_confidence(scores: RegimeScore) -> float:
+        """Measure confidence as the dominance of the top score vs the runner-up."""
+        sorted_scores = sorted(scores.to_dict().values(), reverse=True)
+        if not sorted_scores:
+            return 0.0
+
+        top_score = sorted_scores[0]
+        second_score = sorted_scores[1] if len(sorted_scores) > 1 else 0.0
+        denominator = top_score + second_score
+        if denominator <= 0:
+            return 0.0
+        return top_score / denominator
 
     def _extract_metrics(
         self,

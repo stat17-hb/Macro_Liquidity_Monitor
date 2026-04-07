@@ -253,6 +253,34 @@ EXTENDED_INDICATORS: Dict[str, IndicatorConfig] = {
 
 
 # ============================================================================
+# INDICATOR LABEL MAPPING
+# ============================================================================
+
+INDICATOR_LABEL_TO_KEY: Dict[str, str] = {
+    'Fed Total Assets': 'fed_assets',
+    'Reserve Balances': 'reserve_balances',
+    'Reverse Repo': 'reverse_repo',
+    'TGA Balance': 'tga_balance',
+    'Fed Lending': 'fed_lending',
+    'Fed Lending Net': 'fed_lending_net',
+    'Bank Credit': 'bank_credit',
+    'M2': 'm2',
+    'HY Spread': 'hy_spread',
+    'IG Spread': 'ig_spread',
+    'VIX': 'vix',
+    'S&P 500': 'sp500',
+    'Real Yield 10Y': 'real_yield',
+    'Breakeven 10Y': 'breakeven',
+    'Forward EPS': 'forward_eps',
+    'PE Ratio': 'pe_ratio',
+    'HY ETF': 'hy_etf',
+    'IG ETF': 'ig_etf',
+    'TLT': 'tlt',
+    '10Y Yield': 'treasury_10y',
+}
+
+
+# ============================================================================
 # FED BALANCE SHEET IDENTITY TRACKING
 # ============================================================================
 # Identity: Δ Reserves = Δ SOMA Assets + Δ Lending - Δ Reverse Repo - Δ TGA

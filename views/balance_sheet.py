@@ -27,22 +27,14 @@ from indicators.transforms import (
     detect_inflection,
 )
 from components.styles import render_page_header
-
-
-
-
-
-
-render_page_header(
-    icon="🏦",
-    title="Balance Sheet Expansion",
-    subtitle="대차대조표 확장/수축과 신용창출 모니터링",
-    philosophy="유동성은 고정된 돈의 총량이 아니라, **금융시스템 대차대조표가 확장·수축**하며 '파생'되는 결과입니다.",
-)
-
-# Get data
-
 def render_balance_sheet(data_dict, regime_result=None):
+    render_page_header(
+        icon="🏦",
+        title="Balance Sheet Expansion",
+        subtitle="대차대조표 확장/수축과 신용창출 모니터링",
+        philosophy="유동성은 고정된 돈의 총량이 아니라, **금융시스템 대차대조표가 확장·수축**하며 '파생'되는 결과입니다.",
+    )
+
     # Get data from args instead of session state
     if not data_dict:
         st.warning('⚠️ 데이터가 없습니다.')

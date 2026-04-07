@@ -231,7 +231,8 @@ def calc_percentile(
             return np.nan
         return stats.percentileofscore(x.dropna(), x.iloc[-1])
     
-    return series.rolling(window=window, min_periods=min_periods).apply(percentile_rank)
+    percentile = series.rolling(window=window, min_periods=min_periods).apply(percentile_rank)
+    return percentile.clip(lower=0, upper=100)
 
 
 def calc_rolling_stats(

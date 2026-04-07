@@ -157,7 +157,7 @@ class DataLoader(ABC):
     def handle_missing_values(
         df: pd.DataFrame,
         method: str = 'ffill',
-        winsorize_percentile: float = 0.01,
+        winsorize_percentile: float = 0.0,
     ) -> pd.DataFrame:
         """
         Handle missing values and outliers.

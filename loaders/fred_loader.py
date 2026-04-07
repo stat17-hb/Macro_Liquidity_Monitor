@@ -27,6 +27,25 @@ from .rate_limiter import RateLimiter, ExponentialBackoff, create_fred_limiter
 _fred_rate_limiter: Optional[RateLimiter] = None
 
 
+def _is_non_retryable_fred_error(error: Exception) -> bool:
+    """
+    Return True for permanent FRED errors that should not trigger retries.
+
+    These are usually caused by an invalid or discontinued series ID, so
+    retrying or falling back to another FRED client only adds noisy logs.
+    """
+    message = str(error).lower()
+    non_retryable_markers = [
+        'series does not exist',
+        'not found',
+        '404',
+        'bad request',
+        'invalid series',
+        'discontinued',
+    ]
+    return any(marker in message for marker in non_retryable_markers)
+
+
 def get_fred_rate_limiter() -> RateLimiter:
     """Get or create the FRED rate limiter singleton."""
     global _fred_rate_limiter
@@ -149,6 +168,10 @@ class FREDLoader(DataLoader):
                 self._backoff.record_success()
             except Exception as e:
                 last_error = e
+                if _is_non_retryable_fred_error(e):
+                    raise RuntimeError(
+                        f"Invalid or unavailable FRED series '{ticker}': {e}"
+                    ) from e
                 wait_time = self._backoff.record_failure()
                 if wait_time > 0:
                     import time
@@ -170,6 +193,10 @@ class FREDLoader(DataLoader):
                 self._backoff.record_success()
             except Exception as e:
                 last_error = e
+                if _is_non_retryable_fred_error(e):
+                    raise RuntimeError(
+                        f"Invalid or unavailable FRED series '{ticker}': {e}"
+                    ) from e
                 wait_time = self._backoff.record_failure()
                 if wait_time < 0:  # Max retries exceeded
                     raise RuntimeError(f"Failed to load {ticker} from FRED after retries: {e}")

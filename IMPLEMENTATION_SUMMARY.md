@@ -61,7 +61,7 @@ knowledge_base/
 2. `RRPONTSYD` - Overnight Reverse Repo (역레포)
 3. `WTREGEN` - Treasury General Account (재무부 계좌)
 4. `WLCFLPCL` - Fed Lending Facilities (Fed 대출 프로그램)
-5. `WLDWSL` - Discount Window Lending (재할인창구)
+5. `H41RESPPALDNNWW` - Fed Lending Net (연준 총 대출 순액)
 
 **새로운 설정 딕셔너리**:
 - `FED_BALANCE_SHEET_INDICATORS`: Fed 대차대조표 6개 지표

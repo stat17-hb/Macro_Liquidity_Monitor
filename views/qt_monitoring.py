@@ -30,22 +30,14 @@ from indicators.transforms import (
     calc_percentile,
 )
 from components.styles import render_page_header
-
-
-
-
-
-
-render_page_header(
-    icon="🔄",
-    title="Quantitative Tightening (QT) Monitoring",
-    subtitle="Fed 양적긴축과 자금시장 유동성 추적",
-    philosophy="**QT 핵심**: Fed 자산 감소(SOMA 축소) → 준비금 감소 → 자금시장 경색 신호(역레포 급증). **취약점**: 준비금 부족 시점을 조기 탐지하여 시장 스트레스 예측",
-)
-
-# Get data
-
 def render_qt_monitoring(data_dict, regime_result=None):
+    render_page_header(
+        icon="🔄",
+        title="Quantitative Tightening (QT) Monitoring",
+        subtitle="Fed 양적긴축과 자금시장 유동성 추적",
+        philosophy="**QT 핵심**: Fed 자산 감소(SOMA 축소) → 준비금 감소 → 자금시장 경색 신호(역레포 급증). **취약점**: 준비금 부족 시점을 조기 탐지하여 시장 스트레스 예측",
+    )
+
     # Get data from args instead of session state
     if not data_dict:
         st.warning('⚠️ 데이터가 없습니다.')
